@@ -135,28 +135,11 @@ export class Game {
     }
 
     drawGrid() {
-        const startX = Math.floor(this.camera.x / this.gridSize) * this.gridSize;
-        const startY = Math.floor(this.camera.y / this.gridSize) * this.gridSize;
-        const endX = startX + this.width + this.gridSize;
-        const endY = startY + this.height + this.gridSize;
-
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-        this.ctx.lineWidth = 1;
-
-        for (let x = startX; x < endX; x += this.gridSize) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, startY);
-            this.ctx.lineTo(x, endY);
-            this.ctx.stroke();
-        }
-
-        for (let y = startY; y < endY; y += this.gridSize) {
-            this.ctx.beginPath();
-        // Draw green meadow with paths
+        // Draw green meadow background
         this.ctx.fillStyle = '#14532d'; // Dark green
         this.ctx.fillRect(-this.worldSize/2, -this.worldSize/2, this.worldSize, this.worldSize);
         
-        // Draw some "Nature" details
+        // Draw some "Nature" details (Flowers/Grass patches)
         this.ctx.fillStyle = '#15803d';
         for(let i = -10; i < 10; i++) {
             for(let j = -10; j < 10; j++) {
@@ -166,6 +149,27 @@ export class Game {
                     this.ctx.fill();
                 }
             }
+        }
+
+        // Draw grid lines
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        this.ctx.lineWidth = 1;
+        const startX = Math.floor(this.camera.x / this.gridSize) * this.gridSize;
+        const startY = Math.floor(this.camera.y / this.gridSize) * this.gridSize;
+        const endX = startX + this.width + this.gridSize;
+        const endY = startY + this.height + this.gridSize;
+
+        for (let x = startX; x < endX; x += this.gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, startY);
+            this.ctx.lineTo(x, endY);
+            this.ctx.stroke();
+        }
+        for (let y = startY; y < endY; y += this.gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(startX, y);
+            this.ctx.lineTo(endX, y);
+            this.ctx.stroke();
         }
     }
 
