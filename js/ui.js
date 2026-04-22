@@ -1,19 +1,18 @@
 export class UI {
     constructor(game) {
         this.game = game;
-        this.shopMenu = document.getElementById('shop-menu');
-        this.closeShopBtn = document.getElementById('close-shop');
+        this.inventoryPanel = document.getElementById('inventory-panel');
         this.shopItemsContainer = document.getElementById('shop-items');
         this.loadingScreen = document.getElementById('loading-screen');
-        this.moneyDisplay = document.getElementById('money-display');
-        
+        this.currentTab = 'equipment';
+
         this.setupListeners();
-        this.renderShop('seeds');
     }
 
     setupListeners() {
-        this.closeShopBtn.onclick = () => this.toggleShop(false);
-        
+        // Close inventory
+        document.getElementById('close-inventory').onclick = () => this.toggleInventory(false);
+
         // Chat
         const chatInput = document.getElementById('chat-input');
         chatInput.onkeydown = (e) => {
@@ -32,51 +31,37 @@ export class UI {
         // Emojis
         document.querySelectorAll('.emoji-btn').forEach(btn => {
             btn.onclick = () => {
+                if (!this.game.localPlayer) return;
                 const emoji = btn.dataset.emoji;
+                // 🎲 dice button triggers d20 roll
+                if (emoji === '🎲') {
+                    this.handleCommand('/d20');
+                    return;
+                }
                 this.game.localPlayer.gesture = emoji;
-                setTimeout(() => this.game.localPlayer.gesture = null, 3000);
+                setTimeout(() => { if (this.game.localPlayer) this.game.localPlayer.gesture = null; }, 3000);
                 this.game.app.network.sendGesture(emoji);
             };
         });
 
-        document.getElementById('sell-zone').onclick = () => {
-            const distToNexus = Math.sqrt(this.game.localPlayer.x ** 2 + this.game.localPlayer.y ** 2);
-            if (distToNexus < 200) {
-                this.sellCrops();
-            } else {
-                alert('Debes estar en el Nexus para vender');
-            }
-        };
-
-        // Donation Chest Interaction
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'KeyE') {
-                const p = this.game.localPlayer;
-                if (!p) return;
-                
-                // Dist to chest (at 0, 130 approx)
-                const distToChest = Math.sqrt(p.x ** 2 + (p.y - 130) ** 2);
-                if (distToChest < 80 && p.inventory.money >= 100) {
-                    p.inventory.money -= 100;
-                    this.game.app.network.sendDonation(100);
-                    this.updateStats(p.inventory);
-                }
-            }
-        });
-
+        // Inventory tabs
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.onclick = (e) => {
+            btn.onclick = () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                this.renderShop(btn.dataset.tab);
+                this.currentTab = btn.dataset.tab;
+                this.renderPanel(this.currentTab);
             };
         });
 
-        // Toggle shop with Tab or ESC
+        // Toggle inventory with TAB or ESC
         window.addEventListener('keydown', (e) => {
-            if (e.code === 'Tab' || e.code === 'Escape') {
+            if (e.code === 'Tab') {
                 e.preventDefault();
-                this.toggleShop(!this.isShopOpen());
+                this.toggleInventory(!this.isInventoryOpen());
+            }
+            if (e.code === 'Escape') {
+                this.toggleInventory(false);
             }
         });
     }
@@ -85,68 +70,69 @@ export class UI {
         this.loadingScreen.classList.add('hidden');
     }
 
-    toggleShop(show) {
+    toggleInventory(show) {
         if (show) {
-            this.shopMenu.classList.remove('hidden');
+            this.inventoryPanel.classList.remove('hidden');
+            this.renderPanel(this.currentTab);
         } else {
-            this.shopMenu.classList.add('hidden');
+            this.inventoryPanel.classList.add('hidden');
         }
     }
 
-    isShopOpen() {
-        return !this.shopMenu.classList.contains('hidden');
+    isInventoryOpen() {
+        return !this.inventoryPanel.classList.contains('hidden');
     }
 
-    updateStats(stats) {
-        if (stats.money !== undefined) this.moneyDisplay.innerText = stats.money;
-        
-        // Sum all crops for display
-        const totalCrops = (stats.wheat || 0) + (stats.carrot || 0) + (stats.corn || 0);
-        document.getElementById('crop-display').innerText = totalCrops;
-        
-        // Update tool indicator
-        const toolIcon = this.game.localPlayer?.currentTool === 'hoe' ? '⚒️' : 
-                        (this.game.localPlayer?.currentTool.startsWith('plant') ? '🌱' : 
-                        (this.game.localPlayer?.currentTool === 'sprinkler' ? '⛲' : '🪓'));
-        document.getElementById('tool-indicator').innerText = toolIcon;
+    updateStats(inv) {
+        const moneyEl = document.getElementById('money-display');
+        if (moneyEl && inv.gold !== undefined) moneyEl.textContent = inv.gold;
+
+        const toolIcon = this.game.localPlayer?.currentTool?.includes('sword') ? '⚔️' :
+                         this.game.localPlayer?.currentTool?.includes('bow') ? '🏹' :
+                         this.game.localPlayer?.currentTool?.includes('staff') ? '🪄' : '✨';
+        const toolEl = document.getElementById('tool-indicator');
+        if (toolEl) toolEl.textContent = toolIcon;
     }
 
-    renderShop(category) {
-        if (category === 'inventory') {
+    renderPanel(tab) {
+        if (tab === 'inventory') {
             this.renderInventory();
             return;
         }
 
-        const items = {
-            seeds: [
-                { id: 'plant:wheat', name: 'Trigo', price: 10, icon: '🌾' },
-                { id: 'plant:carrot', name: 'Zanahoria', price: 25, icon: '🥕' },
-                { id: 'plant:corn', name: 'Maíz', price: 50, icon: '🌽' }
+        const catalog = {
+            equipment: [
+                { id: 'weapon:sword', name: 'Espada de Acero', price: 0, icon: '⚔️', desc: 'Arma básica del Guerrero' },
+                { id: 'weapon:bow',   name: 'Arco Largo',      price: 50, icon: '🏹', desc: 'Disparo a distancia' },
+                { id: 'weapon:staff', name: 'Báculo Místico',  price: 100, icon: '🪄', desc: 'Proyectil arcano' }
             ],
-            tools: [
-                { id: 'hoe', name: 'Azada Pro', price: 100, icon: '⚒️' },
-                { id: 'scythe', name: 'Hoz Maestro', price: 100, icon: '🪓' },
-                { id: 'moto', name: 'Moto Deportiva', price: 0, icon: '🏍️' }
+            potions: [
+                { id: 'item:hp_potion',   name: 'Poción de Vida', price: 20, icon: '🧪', desc: 'Restaura vitalidad' },
+                { id: 'item:mana_potion', name: 'Poción de Maná', price: 30, icon: '🍷', desc: 'Recarga energía mágica' }
             ],
-            automation: [
-                { id: 'sprinkler', name: 'Aspersor V1', price: 500, icon: '⛲' }
-            ],
-            weapons: [
-                { id: 'weapon:pistol', name: 'Pistola 9mm', price: 0, icon: '🔫' },
-                { id: 'weapon:bow', name: 'Arco Largo', price: 0, icon: '🏹' },
-                { id: 'weapon:bazooka', name: 'Bazooka RPG', price: 0, icon: '🚀' }
+            spells: [
+                { id: 'spell:fireball', name: 'Bola de Fuego',  price: 150, icon: '🔥', desc: 'Proyectil explosivo' },
+                { id: 'spell:blink',    name: 'Parpadeo',       price: 200, icon: '✨', desc: 'Teletransporte corto' }
             ]
         };
 
         this.shopItemsContainer.innerHTML = '';
-        
-        items[category].forEach(item => {
+        const items = catalog[tab] || [];
+        const p = this.game.localPlayer;
+
+        items.forEach(item => {
+            const isEquipped = p?.currentTool === item.id;
+            const canAfford = (p?.inventory.gold ?? 0) >= item.price;
             const el = document.createElement('div');
             el.className = 'shop-item';
+            el.style.opacity = canAfford || isEquipped ? '1' : '0.5';
             el.innerHTML = `
                 <div class="item-icon">${item.icon}</div>
-                <div class="item-name">${item.name}</div>
-                <div class="item-price">$${item.price}</div>
+                <div class="item-info">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-price">${item.price === 0 ? 'Gratis' : `${item.price} 💰`}</div>
+                    ${isEquipped ? '<div class="item-equipped">✓ Equipado</div>' : ''}
+                </div>
             `;
             el.onclick = () => this.buyItem(item);
             this.shopItemsContainer.appendChild(el);
@@ -158,21 +144,25 @@ export class UI {
         if (!p) return;
 
         this.shopItemsContainer.innerHTML = '';
-        
-        const invItems = [
-            { name: 'Dinero', value: `$${p.inventory.money}`, icon: '💰' },
-            { name: 'Cosecha', value: p.inventory.crops, icon: '🌾' },
-            { name: 'Semillas', value: p.inventory.seeds, icon: '🌱' },
-            { name: 'Herramienta', value: p.currentTool, icon: '⚒️' }
+
+        const items = [
+            { name: 'Oro',         value: p.inventory.gold,    icon: '💰' },
+            { name: 'Pociones',    value: p.inventory.potions,  icon: '🧪' },
+            { name: 'Pergaminos',  value: p.inventory.scrolls,  icon: '📜' },
+            { name: 'Maná',        value: p.inventory.mana,     icon: '✨' },
+            { name: 'Arma',        value: p.currentTool.replace('weapon:', ''), icon: '⚔️' },
+            { name: 'Clase',       value: { warrior: 'Guerrero', mage: 'Mago', fairy: 'Hada' }[p.appearance.class] || '?', icon: '🎭' }
         ];
 
-        invItems.forEach(item => {
+        items.forEach(item => {
             const el = document.createElement('div');
-            el.className = 'shop-item inventory-item';
+            el.className = 'shop-item';
             el.innerHTML = `
                 <div class="item-icon">${item.icon}</div>
-                <div class="item-name">${item.name}</div>
-                <div class="item-price">${item.value}</div>
+                <div class="item-info">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-price">${item.value}</div>
+                </div>
             `;
             this.shopItemsContainer.appendChild(el);
         });
@@ -182,69 +172,63 @@ export class UI {
         const p = this.game.localPlayer;
         if (!p) return;
 
-        if (p.inventory.money >= item.price) {
-            p.inventory.money -= item.price;
-            
-            if (item.id.startsWith('plant:')) {
+        if (p.inventory.gold >= item.price) {
+            p.inventory.gold -= item.price;
+            if (item.id.startsWith('weapon:')) {
                 p.currentTool = item.id;
-            } else if (item.id.startsWith('weapon:')) {
-                p.currentTool = item.id;
-            } else if (item.id === 'sprinkler') {
-                p.currentTool = 'sprinkler';
-            } else if (item.id === 'scythe') {
-                p.currentTool = 'scythe';
+                this.receiveMessage('ARMERÍA', `Has equipado: ${item.name}`, 'system');
+            } else {
+                const key = item.id.split(':')[1];
+                p.inventory[key] = (p.inventory[key] || 0) + 1;
+                this.receiveMessage('TIENDA', `Has obtenido: ${item.name}`, 'system');
             }
-
             this.updateStats(p.inventory);
-            this.toggleShop(false);
+            this.renderPanel(this.currentTab);
         } else {
-            alert('No tienes suficiente dinero');
+            this.receiveMessage('SISTEMA', 'No tienes suficiente oro.', 'system');
         }
-    }
-
-    sellCrops() {
-        const p = this.game.localPlayer;
-        if (!p) return;
-
-        const wheatVal = (p.inventory.wheat || 0) * 15;
-        const carrotVal = (p.inventory.carrot || 0) * 40;
-        const cornVal = (p.inventory.corn || 0) * 100;
-        
-        const earnings = wheatVal + carrotVal + cornVal;
-        if (earnings <= 0) return;
-
-        p.inventory.money += earnings;
-        p.inventory.wheat = 0;
-        p.inventory.carrot = 0;
-        p.inventory.corn = 0;
-        
-        this.updateStats(p.inventory);
     }
 
     handleCommand(cmd) {
         const parts = cmd.split(' ');
         const action = parts[0].toLowerCase();
-        
+
         if (action === '/d20') {
             const roll = Math.floor(Math.random() * 20) + 1;
-            this.game.app.network.sendMessage(`🎲 Lanzó un dado d20: ¡Sacó un ${roll}!`);
-            this.game.localPlayer.gesture = `🎲 ${roll}`;
-            setTimeout(() => this.game.localPlayer.gesture = null, 4000);
+            const critical = roll === 20 ? ' ¡CRÍTICO NATURAL! 🎉' : (roll === 1 ? ' ¡PIFIA TOTAL! 💀' : '');
+            this.game.app.network.sendMessage(`🎲 tiró un d20 y sacó ${roll}${critical}`);
+            if (this.game.localPlayer) {
+                this.game.localPlayer.gesture = `🎲${roll}`;
+                setTimeout(() => { if (this.game.localPlayer) this.game.localPlayer.gesture = null; }, 4000);
+            }
         } else if (action === '/mood') {
-            const mood = parts.slice(1).join(' ');
-            this.game.localPlayer.mood = mood;
-            this.receiveMessage('SISTEMA', `Estado actualizado: ${mood}`);
+            const mood = parts.slice(1).join(' ').slice(0, 30);
+            if (this.game.localPlayer) {
+                this.game.localPlayer.mood = mood;
+                this.receiveMessage('SISTEMA', `Estado actualizado: "${mood}"`, 'system');
+            }
+        } else if (action === '/clase' || action === '/class') {
+            const p = this.game.localPlayer;
+            if (p) {
+                const classNames = { warrior: 'Guerrero', mage: 'Mago', fairy: 'Hada' };
+                this.receiveMessage('SISTEMA', `Tu clase: ${classNames[p.appearance.class]}. Habilidad: Q`, 'system');
+            }
+        } else if (action === '/ayuda' || action === '/help') {
+            this.receiveMessage('SISTEMA', 'Comandos: /d20, /mood [texto], /clase, /ayuda', 'system');
         } else {
-            this.receiveMessage('SISTEMA', `Comandos: /d20, /mood [mensaje]`);
+            this.receiveMessage('SISTEMA', `Comando desconocido. Usa /ayuda`, 'system');
         }
     }
 
-    receiveMessage(name, text) {
+    receiveMessage(name, text, type = '') {
         const chatMessages = document.getElementById('chat-messages');
         const msgEl = document.createElement('div');
-        msgEl.className = 'chat-msg';
-        msgEl.innerHTML = `<span class="name">${name}:</span><span class="text">${text}</span>`;
+        msgEl.className = `chat-msg ${type}`;
+        msgEl.innerHTML = `<span class="name">${name}:</span><span class="text"> ${text}</span>`;
         chatMessages.appendChild(msgEl);
+
+        // Keep last 50 messages
+        while (chatMessages.children.length > 50) chatMessages.removeChild(chatMessages.firstChild);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 }

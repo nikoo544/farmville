@@ -26,16 +26,18 @@ export class Player {
         
         this.speed = 350;
         this.velocity = { x: 0, y: 0 };
+        // For remote player interpolation
+        this.targetX = this.x;
+        this.targetY = this.y;
         
         this.inventory = {
-            money: 100,
-            wheat: 0,
-            carrot: 0,
-            corn: 0,
-            seeds: 10
+            gold: 50,
+            potions: 2,
+            scrolls: 1,
+            mana: 100
         };
 
-        this.currentTool = 'hoe'; // 'hoe', 'plant:wheat', 'weapon:pistol', etc
+        this.currentTool = 'weapon:sword'; // Default D&D tool
         this.inVehicle = false;
         this.isEntering = false;
         
@@ -71,31 +73,25 @@ export class Player {
 
     handleKey(code, isDown) {
         switch (code) {
-            case 'KeyW': case 'ArrowUp': this.input.up = isDown; break;
-            case 'KeyS': case 'ArrowDown': this.input.down = isDown; break;
-            case 'KeyA': case 'ArrowLeft': this.input.left = isDown; break;
+            case 'KeyW': case 'ArrowUp':    this.input.up    = isDown; break;
+            case 'KeyS': case 'ArrowDown':  this.input.down  = isDown; break;
+            case 'KeyA': case 'ArrowLeft':  this.input.left  = isDown; break;
             case 'KeyD': case 'ArrowRight': this.input.right = isDown; break;
             case 'KeyE': this.input.interact = isDown; break;
-            case 'KeyV': this.input.vehicle = isDown; break;
-            case 'KeyQ': this.input.skill = isDown; break;
-            case 'Digit1': this.currentTool = 'hoe'; break;
-            case 'Digit2': this.currentTool = 'plant:wheat'; break;
-            case 'Digit3': this.currentTool = 'scythe'; break;
+            case 'KeyV': this.input.vehicle  = isDown; break;
+            case 'KeyQ': if (isDown) this.input.skill = true; else this.input.skill = false; break;
+            case 'Digit1': this.currentTool = 'weapon:sword'; break;
+            case 'Digit2': this.currentTool = 'weapon:bow';   break;
+            case 'Digit3': this.currentTool = 'weapon:staff'; break;
         }
     }
 
     update(dt) {
         if (!this.isLocal) {
-            // Simple bot movement to make them feel alive
-            if (Math.random() < 0.01) {
-                this.targetDir = {
-                    x: (Math.random() - 0.5),
-                    y: (Math.random() - 0.5)
-                };
-            }
-            if (this.targetDir) {
-                this.x += this.targetDir.x * 50 * dt;
-                this.y += this.targetDir.y * 50 * dt;
+            // Smooth interpolation towards server position
+            if (this.targetX !== undefined) {
+                this.x += (this.targetX - this.x) * Math.min(1, dt * 12);
+                this.y += (this.targetY - this.y) * Math.min(1, dt * 12);
             }
             return;
         }

@@ -135,14 +135,22 @@ io.on('connection', (socket) => {
     });
 });
 
-// Server Tick (Social Sync)
+// Server Tick — Social Sync (every 3s)
 setInterval(() => {
-    // Broadcast Ranking every 5 seconds
+    const classIcons = { warrior: '⚔️', mage: '🧙', fairy: '🧚' };
+    const classNames = { warrior: 'Guerrero', mage: 'Mago', fairy: 'Hada' };
+
     const ranking = Object.values(players)
-        .map(p => ({ name: p.name, score: p.score || 0 }))
+        .map(p => ({
+            name: p.name,
+            score: p.score || 0,
+            icon: classIcons[p.appearance?.class] || '⚔️',
+            className: classNames[p.appearance?.class] || ''
+        }))
         .sort((a, b) => b.score - a.score);
+
     io.emit('rankingUpdate', ranking);
-}, 5000);
+}, 3000);
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {

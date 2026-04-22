@@ -4,195 +4,188 @@ export class NetworkManager {
     constructor(game) {
         this.game = game;
         this.socket = null;
-        
-        // Try to connect to socket.io (it will fail if server is not running)
+
         if (typeof io !== 'undefined') {
             this.socket = io();
             this.setupListeners();
         } else {
-            console.warn('Socket.io no encontrado. Jugando en modo offline.');
+            console.warn('Socket.io no encontrado. Modo offline.');
         }
     }
 
     setupListeners() {
+        // World state sync
         this.socket.on('worldState', (state) => {
-            this.game.donations = state.globalDonations;
+            if (state.globalDonations !== undefined) this.game.donations = state.globalDonations;
         });
 
-        this.socket.on('zombieUpdate', (zombies) => {
-            this.game.enemies = zombies.map(z => {
-                const zombie = new Zombie(z.x, z.y);
-                zombie.id = z.id;
-                zombie.health = z.health;
-                return zombie;
-            });
-        });
-
-        this.socket.on('donationsUpdated', (amount) => {
-            this.game.donations = amount;
-            this.game.app.ui.receiveMessage('SISTEMA', `¡Donación recibida! Total global: $${amount}`);
-        });
-
+        // Player list (online scoreboard)
         this.socket.on('rankingUpdate', (ranking) => {
             const list = document.getElementById('score-list');
-            list.innerHTML = ranking.map((p, i) => `
+            if (!list) return;
+            list.innerHTML = ranking.slice(0, 8).map(p => `
                 <div class="score-item">
-                    <span>${i+1}. ${p.name}</span>
-                    <span>$${p.score}</span>
+                    <span class="score-name">${p.icon || '⚔️'} ${p.name}</span>
+                    <span class="score-class">${p.className || ''}</span>
                 </div>
-            `).join('');
+            `).join('') || '<div style="color:rgba(255,255,255,0.3);font-size:12px;">Nadie conectado aún</div>';
         });
 
-        this.socket.on('droneEvent', (data) => {
-            this.game.drone = new Drone(data.x, data.y);
-            this.game.app.ui.receiveMessage('SISTEMA', '🚁 El Dron de recolección está llegando al Nexus...');
-        });
-
+        // Player gestures
         this.socket.on('playerGesture', (data) => {
-            const remotePlayer = this.game.players.get(data.id);
-            if (remotePlayer) {
-                remotePlayer.gesture = data.emoji;
-                setTimeout(() => remotePlayer.gesture = null, 3000);
+            const remote = this.game.players.get(data.id);
+            if (remote) {
+                remote.gesture = data.emoji;
+                setTimeout(() => remote.gesture = null, 3000);
             }
         });
 
+        // Transformation (Mage skill)
         this.socket.on('playerTransformed', (data) => {
             if (data.id === this.socket.id) {
-                this.game.localPlayer.isRabbit = data.status;
-                this.game.app.ui.receiveMessage('SISTEMA', data.status ? '¡Te han convertido en conejo!' : 'Has vuelto a la normalidad.');
+                if (this.game.localPlayer) {
+                    this.game.localPlayer.isRabbit = data.status;
+                    this.game.app.ui.receiveMessage('MAGIA', 
+                        data.status ? '🐇 ¡Un mago te transformó en conejo!' : '✨ Has vuelto a la normalidad.',
+                        'system'
+                    );
+                }
             } else {
                 const remote = this.game.players.get(data.id);
                 if (remote) remote.isRabbit = data.status;
             }
         });
 
+        // Skill effects (Fairy sparkle, Warrior taunt)
         this.socket.on('skillEffect', (data) => {
-            // Visual feedback could be added here
             const p = this.game.players.get(data.id);
             const name = p ? p.name : 'Alguien';
-            this.game.app.ui.receiveMessage('COMBATE', `${name} usó una habilidad: ${data.type}`);
+            const effects = {
+                transform: `🧙 ${name} lanzó un hechizo de transformación`,
+                sparkle:   `🧚 ${name} lanzó destellos de hada ✨`,
+                taunt:     `⚔️ ${name} lanzó un grito de batalla`,
+            };
+            this.game.app.ui.receiveMessage('MAGIA', effects[data.type] || `${name} usó una habilidad`, 'combat');
         });
 
+        // Current players on connect
         this.socket.on('currentPlayers', (players) => {
-            Object.keys(players).forEach((id) => {
-                if (id !== this.socket.id) {
-                    this.addRemotePlayer(players[id]);
-                }
+            Object.values(players).forEach(info => {
+                if (info.id !== this.socket.id) this.addRemotePlayer(info);
             });
         });
 
-        this.socket.on('newPlayer', (playerInfo) => {
-            this.addRemotePlayer(playerInfo);
+        // New player joins
+        this.socket.on('newPlayer', (info) => {
+            this.addRemotePlayer(info);
+            this.game.app.ui.receiveMessage('CITADELA', `${info.name} ha entrado a la Citadela 🏰`, 'system');
         });
 
-        this.socket.on('playerMoved', (playerInfo) => {
-            const remotePlayer = this.game.players.get(playerInfo.id);
-            if (remotePlayer) {
-                remotePlayer.x = playerInfo.x;
-                remotePlayer.y = playerInfo.y;
-                remotePlayer.currentTool = playerInfo.currentTool;
-                remotePlayer.inVehicle = playerInfo.inVehicle;
-                remotePlayer.name = playerInfo.name; 
-                remotePlayer.appearance = playerInfo.appearance; // Sync appearance
-                remotePlayer.isRabbit = playerInfo.isRabbit;
-                remotePlayer.mood = playerInfo.mood; // Sync mood
+        // Player movement update
+        this.socket.on('playerMoved', (info) => {
+            const remote = this.game.players.get(info.id);
+            if (remote) {
+                // Smooth interpolation
+                remote.targetX = info.x;
+                remote.targetY = info.y;
+                remote.currentTool = info.currentTool;
+                remote.inVehicle = info.inVehicle;
+                remote.name = info.name;
+                if (info.appearance) remote.appearance = info.appearance;
+                if (info.isRabbit !== undefined) remote.isRabbit = info.isRabbit;
+                if (info.mood !== undefined) remote.mood = info.mood;
             }
         });
 
+        // Chat
         this.socket.on('chatMessage', (data) => {
             this.game.app.ui.receiveMessage(data.name, data.text);
         });
 
+        // Vehicle sync
         this.socket.on('vehicleMoved', (data) => {
-            let v = this.game.vehicle;
-            if (data.id === 'moto_main') v = this.game.moto;
-            v.x = data.x;
-            v.y = data.y;
-            v.angle = data.angle;
-            v.driver = data.driver;
+            const v = this.game.moto;
+            if (v && data.id === 'moto_main') {
+                v.x = data.x;
+                v.y = data.y;
+                v.angle = data.angle;
+                v.driver = data.driver;
+            }
         });
 
+        // Projectiles
         this.socket.on('shoot', (data) => {
             this.game.spawnProjectile(data.x, data.y, data.angle, data.type, data.id);
         });
 
+        // Disconnect
         this.socket.on('playerDisconnected', (id) => {
+            const p = this.game.players.get(id);
+            if (p) {
+                this.game.app.ui.receiveMessage('CITADELA', `${p.name} ha abandonado la Citadela`, 'system');
+            }
             this.game.players.delete(id);
             this.game.entities = this.game.entities.filter(e => e.id !== id);
         });
     }
 
-    addRemotePlayer(playerInfo) {
-        const remotePlayer = new Player(playerInfo.id, playerInfo.name, false);
-        remotePlayer.x = playerInfo.x;
-        remotePlayer.y = playerInfo.y;
-        remotePlayer.color = playerInfo.color;
-        remotePlayer.appearance = playerInfo.appearance; // Initial appearance
-        this.game.players.set(playerInfo.id, remotePlayer);
-        this.game.entities.push(remotePlayer);
+    addRemotePlayer(info) {
+        if (this.game.players.has(info.id)) return;
+        const remote = new Player(info.id, info.name, false);
+        remote.x = info.x || 0;
+        remote.y = info.y || 0;
+        remote.targetX = remote.x;
+        remote.targetY = remote.y;
+        remote.color = info.color || '#f87171';
+        if (info.appearance) remote.appearance = { ...remote.appearance, ...info.appearance };
+        this.game.players.set(info.id, remote);
+        this.game.entities.push(remote);
     }
 
     sendMovement(x, y) {
-        if (this.socket) {
-            this.socket.emit('playerMovement', { 
-                x, 
-                y, 
-                currentTool: this.game.localPlayer.currentTool,
-                inVehicle: this.game.localPlayer.inVehicle,
-                name: this.game.localPlayer.name,
-                appearance: this.game.localPlayer.appearance,
-                isRabbit: this.game.localPlayer.isRabbit,
-                mood: this.game.localPlayer.mood
-            });
-        }
+        if (!this.socket || !this.game.localPlayer) return;
+        this.socket.emit('playerMovement', {
+            x, y,
+            currentTool: this.game.localPlayer.currentTool,
+            inVehicle: this.game.localPlayer.inVehicle,
+            name: this.game.localPlayer.name,
+            appearance: this.game.localPlayer.appearance,
+            isRabbit: this.game.localPlayer.isRabbit,
+            mood: this.game.localPlayer.mood
+        });
     }
 
     sendMessage(text) {
-        if (this.socket) {
-            this.socket.emit('chatMessage', { 
-                name: this.game.localPlayer.name, 
-                text 
-            });
-            // Show locally too
-            this.game.app.ui.receiveMessage(this.game.localPlayer.name, text);
-        }
+        if (!this.socket || !this.game.localPlayer) return;
+        const name = this.game.localPlayer.name;
+        this.socket.emit('chatMessage', { name, text });
+        this.game.app.ui.receiveMessage(name, text);
     }
 
     sendVehicleUpdate(vehicle) {
-        if (this.socket) {
-            this.socket.emit('vehicleUpdate', {
-                id: vehicle.id,
-                x: vehicle.x,
-                y: vehicle.y,
-                angle: vehicle.angle,
-                driver: vehicle.driver
-            });
-        }
+        if (!this.socket) return;
+        this.socket.emit('vehicleUpdate', {
+            id: vehicle.id,
+            x: vehicle.x,
+            y: vehicle.y,
+            angle: vehicle.angle,
+            driver: vehicle.driver
+        });
     }
 
     sendShoot(x, y, angle, type) {
-        if (this.socket) {
-            this.socket.emit('shoot', { x, y, angle, type, id: this.socket.id });
-            // Spawn locally too
-            this.game.spawnProjectile(x, y, angle, type, this.socket.id);
-        }
+        if (!this.socket) return;
+        this.socket.emit('shoot', { x, y, angle, type, id: this.socket.id });
+        this.game.spawnProjectile(x, y, angle, type, this.socket.id);
     }
 
     sendSkill(type) {
-        if (this.socket) {
-            this.socket.emit('skill', { type });
-        }
-    }
-
-    sendDonation(amount) {
-        if (this.socket) {
-            this.socket.emit('donate', amount);
-        }
+        if (!this.socket) return;
+        this.socket.emit('skill', { type });
     }
 
     sendGesture(emoji) {
-        if (this.socket) {
-            this.socket.emit('gesture', emoji);
-        }
+        if (!this.socket) return;
+        this.socket.emit('gesture', emoji);
     }
 }
