@@ -94,11 +94,16 @@ export class UI {
             ],
             tools: [
                 { id: 'hoe', name: 'Azada Pro', price: 100, icon: '⚒️' },
-                { id: 'can', name: 'Regadera Auto', price: 200, icon: '💧' }
+                { id: 'scythe', name: 'Hoz Maestro', price: 100, icon: '🪓' },
+                { id: 'moto', name: 'Moto Deportiva', price: 0, icon: '🏍️' }
             ],
             automation: [
-                { id: 'sprinkler', name: 'Aspersor V1', price: 500, icon: '⛲' },
-                { id: 'drone', name: 'Dron Cosechador', price: 1500, icon: '🚁' }
+                { id: 'sprinkler', name: 'Aspersor V1', price: 500, icon: '⛲' }
+            ],
+            weapons: [
+                { id: 'weapon:pistol', name: 'Pistola 9mm', price: 0, icon: '🔫' },
+                { id: 'weapon:bow', name: 'Arco Largo', price: 0, icon: '🏹' },
+                { id: 'weapon:bazooka', name: 'Bazooka RPG', price: 0, icon: '🚀' }
             ]
         };
 
@@ -151,8 +156,12 @@ export class UI {
             
             if (item.id.startsWith('plant:')) {
                 p.currentTool = item.id;
+            } else if (item.id.startsWith('weapon:')) {
+                p.currentTool = item.id;
             } else if (item.id === 'sprinkler') {
                 p.currentTool = 'sprinkler';
+            } else if (item.id === 'scythe') {
+                p.currentTool = 'scythe';
             }
 
             this.updateStats(p.inventory);

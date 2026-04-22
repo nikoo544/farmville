@@ -17,13 +17,18 @@ export class Game {
         this.gridSize = 64; // Size of each tile
         
         this.entities = [];
+        this.projectiles = [];
+        this.enemies = [];
         this.players = new Map();
         this.localPlayer = null;
         
-        this.vehicle = new Vehicle(0, 300); // Create tractor near Nexus
-        this.entities.push(this.vehicle);
+        this.vehicle = new Vehicle(0, 300); // Tractor
+        this.moto = new Motorcycle(100, 300); // Moto
+        this.entities.push(this.vehicle, this.moto);
 
         this.farmSystem = new FarmSystem(this);
+        
+        this.spawnTimer = 0;
 
         this.lastTime = 0;
         this.setup();
@@ -67,6 +72,32 @@ export class Game {
 
         this.farmSystem.update(dt);
 
+        // Update Projectiles
+        this.projectiles = this.projectiles.filter(p => !p.dead);
+        this.projectiles.forEach(p => {
+            p.update(dt);
+            
+            // Collision with enemies
+            this.enemies.forEach(e => {
+                const dist = Math.sqrt((p.x - e.x)**2 + (p.y - e.y)**2);
+                if (dist < e.radius + p.radius) {
+                    const damage = p.type === 'rocket' ? 100 : (p.type === 'arrow' ? 40 : 25);
+                    e.health -= damage;
+                    p.dead = true;
+                    if (e.health <= 0) e.dead = true;
+                }
+            });
+        });
+
+        // Update Enemies
+        this.spawnTimer += dt;
+        if (this.spawnTimer > 3) {
+            this.spawnZombie();
+            this.spawnTimer = 0;
+        }
+        this.enemies = this.enemies.filter(e => !e.dead);
+        this.enemies.forEach(e => e.update(dt, this.localPlayer, this.players));
+
         // Update other entities
         this.entities.forEach(entity => entity.update?.(dt));
     }
@@ -82,6 +113,9 @@ export class Game {
         this.drawNexus();
         
         this.farmSystem.draw(this.ctx);
+
+        this.projectiles.forEach(p => p.draw(this.ctx));
+        this.enemies.forEach(e => e.draw(this.ctx));
 
         // Draw entities
         this.entities.forEach(entity => entity.draw?.(this.ctx));
@@ -118,6 +152,18 @@ export class Game {
         }
     }
 
+    spawnZombie() {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 1500;
+        const x = Math.cos(angle) * dist;
+        const y = Math.sin(angle) * dist;
+        this.enemies.push(new Zombie(x, y));
+    }
+
+    spawnProjectile(x, y, angle, type, ownerId) {
+        this.projectiles.push(new Projectile(x, y, angle, type, ownerId));
+    }
+
     drawNexus() {
         // Draw the central shop hub
         const size = 300;
@@ -148,6 +194,116 @@ export class Game {
         this.ctx.fillText('NEXUS', 0, 0);
         this.ctx.font = '20px Outfit';
         this.ctx.fillText('TIENDA', 0, 30);
+    }
+}
+
+class Motorcycle {
+    constructor(x, y) {
+        this.id = 'moto_main';
+        this.x = x;
+        this.y = y;
+        this.width = 60;
+        this.height = 30;
+        this.color = '#3b82f6'; // Blue
+        this.driver = null;
+        this.speed = 800; // Faster than tractor
+        this.angle = 0;
+        this.velocity = { x: 0, y: 0 };
+    }
+
+    update(dt) {
+        this.velocity.x *= 0.95;
+        this.velocity.y *= 0.95;
+        this.x += this.velocity.x * dt;
+        this.y += this.velocity.y * dt;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-this.width/2 - 10, -5, 20, 10);
+        ctx.fillRect(this.width/2 - 10, -5, 20, 10);
+        ctx.restore();
+    }
+}
+
+class Projectile {
+    constructor(x, y, angle, type, ownerId) {
+        this.x = x;
+        this.y = y;
+        this.angle = angle;
+        this.type = type;
+        this.ownerId = ownerId;
+        this.speed = type === 'rocket' ? 400 : 1000;
+        this.radius = type === 'rocket' ? 10 : 4;
+        this.dead = false;
+        this.life = type === 'rocket' ? 3 : 1;
+    }
+
+    update(dt) {
+        this.x += Math.cos(this.angle) * this.speed * dt;
+        this.y += Math.sin(this.angle) * this.speed * dt;
+        this.life -= dt;
+        if (this.life <= 0) this.dead = true;
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = this.type === 'rocket' ? '#f43f5e' : (this.type === 'arrow' ? '#d4d4d8' : '#fbbf24');
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+class Zombie {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 25;
+        this.speed = 100 + Math.random() * 50;
+        this.health = 100;
+        this.dead = false;
+        this.color = '#166534'; // Zombie Green
+    }
+
+    update(dt, localPlayer, remotePlayers) {
+        // Find nearest target (local or remote)
+        let targets = [];
+        if (localPlayer) targets.push(localPlayer);
+        remotePlayers.forEach(p => targets.push(p));
+
+        let nearest = null;
+        let minDist = Infinity;
+        targets.forEach(t => {
+            const d = Math.sqrt((t.x - this.x)**2 + (t.y - this.y)**2);
+            if (d < minDist) {
+                minDist = d;
+                nearest = t;
+            }
+        });
+
+        if (nearest) {
+            const angle = Math.atan2(nearest.y - this.y, nearest.x - this.x);
+            this.x += Math.cos(angle) * this.speed * dt;
+            this.y += Math.sin(angle) * this.speed * dt;
+        }
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Health bar
+        ctx.fillStyle = 'red';
+        ctx.fillRect(this.x - 20, this.y - 40, 40, 5);
+        ctx.fillStyle = 'green';
+        ctx.fillRect(this.x - 20, this.y - 40, 40 * (this.health/100), 5);
     }
 }
 

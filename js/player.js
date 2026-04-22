@@ -20,7 +20,7 @@ export class Player {
             seeds: 10
         };
 
-        this.currentTool = 'hoe'; // 'hoe', 'plant:wheat', etc
+        this.currentTool = 'hoe'; // 'hoe', 'plant:wheat', 'weapon:pistol', etc
         this.inVehicle = false;
         this.isEntering = false;
         
@@ -30,11 +30,21 @@ export class Player {
             left: false,
             right: false,
             interact: false,
-            vehicle: false
+            vehicle: false,
+            shoot: false
         };
+
+        this.mousePos = { x: 0, y: 0 };
+        this.shootTimer = 0;
 
         if (this.isLocal) {
             this.setupInput();
+            window.addEventListener('mousedown', () => this.input.shoot = true);
+            window.addEventListener('mouseup', () => this.input.shoot = false);
+            window.addEventListener('mousemove', (e) => {
+                this.mousePos.x = e.clientX;
+                this.mousePos.y = e.clientY;
+            });
         }
     }
 
@@ -97,6 +107,31 @@ export class Player {
 
         this.x += this.velocity.x * dt;
         this.y += this.velocity.y * dt;
+
+        // Combat
+        this.shootTimer -= dt;
+        if (this.input.shoot && this.shootTimer <= 0 && this.currentTool.startsWith('weapon:')) {
+            this.shoot();
+        }
+    }
+
+    shoot() {
+        const weaponType = this.currentTool.split(':')[1];
+        const game = window.app.game; // Access game via window or app
+        
+        const rect = game.canvas.getBoundingClientRect();
+        const worldMouseX = this.mousePos.x - rect.left + game.camera.x;
+        const worldMouseY = this.mousePos.y - rect.top + game.camera.y;
+        
+        const angle = Math.atan2(worldMouseY - this.y, worldMouseX - this.x);
+        
+        // Spawn local projectile
+        const ProjectileClass = Object.getPrototypeOf(game.entities.find(e => e.constructor.name === 'Vehicle')).constructor; // Hacky way to get classes if not exported
+        // Better: game.spawnProjectile(this.x, this.y, angle, weaponType, this.id);
+        window.app.network.sendShoot(this.x, this.y, angle, weaponType);
+        
+        const cooldown = weaponType === 'bazooka' ? 1.5 : (weaponType === 'bow' ? 0.8 : 0.2);
+        this.shootTimer = cooldown;
     }
 
     draw(ctx) {
@@ -120,7 +155,10 @@ export class Player {
         ctx.fillText(this.name, this.x, this.y - this.radius - 25);
 
         // Tool Indicator Overlay (Only for local player or to show what others are doing)
-        const toolIcons = { hoe: '⚒️', plant: '🌱', scythe: '🪓', sprinkler: '⛲' };
+        const toolIcons = { 
+            hoe: '⚒️', 'plant:wheat': '🌾', 'plant:carrot': '🥕', 'plant:corn': '🌽',
+            scythe: '🪓', sprinkler: '⛲', 'weapon:pistol': '🔫', 'weapon:bow': '🏹', 'weapon:bazooka': '🚀' 
+        };
         const icon = toolIcons[this.currentTool] || '🤚';
         
         ctx.font = '20px Outfit';

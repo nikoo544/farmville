@@ -85,6 +85,7 @@ class App {
 
         // Vehicle interaction
         const distToVehicle = Math.sqrt((p.x - this.game.vehicle.x) ** 2 + (p.y - this.game.vehicle.y) ** 2);
+        const distToMoto = Math.sqrt((p.x - this.game.moto.x) ** 2 + (p.y - this.game.moto.y) ** 2);
         
         // Handle Vehicle Exit/Enter
         if (p.input.vehicle && !p.isEntering) {
@@ -92,24 +93,31 @@ class App {
             if (p.inVehicle) {
                 p.inVehicle = false;
                 this.game.vehicle.driver = null;
+                this.game.moto.driver = null;
                 this.network.sendVehicleUpdate(this.game.vehicle);
+                this.network.sendVehicleUpdate(this.game.moto);
             } else if (distToVehicle < 150 && !this.game.vehicle.driver) {
                 p.inVehicle = true;
                 this.game.vehicle.driver = p.id;
                 this.network.sendVehicleUpdate(this.game.vehicle);
+            } else if (distToMoto < 100 && !this.game.moto.driver) {
+                p.inVehicle = true;
+                this.game.moto.driver = p.id;
+                this.network.sendVehicleUpdate(this.game.moto);
             }
             setTimeout(() => p.isEntering = false, 500);
         }
 
         if (p.inVehicle) {
-            // Drive vehicle
-            const v = this.game.vehicle;
+            // Drive whichever vehicle has us as driver
+            const v = this.game.vehicle.driver === p.id ? this.game.vehicle : this.game.moto;
             let move = 0;
             if (p.input.up) move = 1;
             if (p.input.down) move = -1;
             
-            if (p.input.left) v.angle -= 3 * 0.016;
-            if (p.input.right) v.angle += 3 * 0.016;
+            const turnSpeed = v === this.game.moto ? 5 : 3;
+            if (p.input.left) v.angle -= turnSpeed * 0.016;
+            if (p.input.right) v.angle += turnSpeed * 0.016;
 
             v.velocity.x = Math.cos(v.angle) * move * v.speed;
             v.velocity.y = Math.sin(v.angle) * move * v.speed;
@@ -145,9 +153,14 @@ class App {
             let actionName = 'Arar';
             let action = 'till';
 
-            if (p.currentTool === 'plant') { actionName = 'Plantar'; action = 'plant'; }
+            if (p.currentTool.startsWith('plant:')) { 
+                const cropType = p.currentTool.split(':')[1];
+                actionName = `Plantar ${cropType}`; 
+                action = p.currentTool; 
+            }
             if (p.currentTool === 'scythe') { actionName = 'Cosechar'; action = 'harvest'; }
             if (p.currentTool === 'sprinkler') { actionName = 'Colocar Aspersor'; action = 'sprinkler'; }
+            if (p.currentTool.startsWith('weapon:')) { actionName = 'Atacar'; action = 'attack'; }
 
             prompt.innerHTML = `Presiona <span class="key">E</span> para ${actionName}`;
             

@@ -55,11 +55,16 @@ export class NetworkManager {
         });
 
         this.socket.on('vehicleMoved', (data) => {
-            const v = this.game.vehicle;
+            let v = this.game.vehicle;
+            if (data.id === 'moto_main') v = this.game.moto;
             v.x = data.x;
             v.y = data.y;
             v.angle = data.angle;
             v.driver = data.driver;
+        });
+
+        this.socket.on('shoot', (data) => {
+            this.game.spawnProjectile(data.x, data.y, data.angle, data.type, data.id);
         });
 
         this.socket.on('playerDisconnected', (id) => {
@@ -114,11 +119,20 @@ export class NetworkManager {
     sendVehicleUpdate(vehicle) {
         if (this.socket) {
             this.socket.emit('vehicleUpdate', {
+                id: vehicle.id,
                 x: vehicle.x,
                 y: vehicle.y,
                 angle: vehicle.angle,
                 driver: vehicle.driver
             });
+        }
+    }
+
+    sendShoot(x, y, angle, type) {
+        if (this.socket) {
+            this.socket.emit('shoot', { x, y, angle, type, id: this.socket.id });
+            // Spawn locally too
+            this.game.spawnProjectile(x, y, angle, type, this.socket.id);
         }
     }
 
