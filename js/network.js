@@ -32,6 +32,7 @@ export class NetworkManager {
             if (remotePlayer) {
                 remotePlayer.x = playerInfo.x;
                 remotePlayer.y = playerInfo.y;
+                remotePlayer.currentTool = playerInfo.currentTool;
             }
         });
 
@@ -60,7 +61,11 @@ export class NetworkManager {
 
     sendMovement(x, y) {
         if (this.socket) {
-            this.socket.emit('playerMovement', { x, y });
+            this.socket.emit('playerMovement', { 
+                x, 
+                y, 
+                currentTool: this.game.localPlayer.currentTool 
+            });
         }
     }
 

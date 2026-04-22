@@ -52,7 +52,20 @@ export class Player {
     }
 
     update(dt) {
-        if (!this.isLocal) return;
+        if (!this.isLocal) {
+            // Simple bot movement to make them feel alive
+            if (Math.random() < 0.01) {
+                this.targetDir = {
+                    x: (Math.random() - 0.5),
+                    y: (Math.random() - 0.5)
+                };
+            }
+            if (this.targetDir) {
+                this.x += this.targetDir.x * 50 * dt;
+                this.y += this.targetDir.y * 50 * dt;
+            }
+            return;
+        }
 
         let moveX = 0;
         let moveY = 0;
@@ -94,8 +107,19 @@ export class Player {
 
         // Name tag
         ctx.fillStyle = 'white';
-        ctx.font = '14px Outfit';
+        ctx.font = 'bold 16px Outfit';
         ctx.textAlign = 'center';
-        ctx.fillText(this.name, this.x, this.y - this.radius - 10);
+        ctx.fillText(this.name, this.x, this.y - this.radius - 25);
+
+        // Tool Indicator Overlay (Only for local player or to show what others are doing)
+        const toolIcons = { hoe: '⚒️', plant: '🌱', scythe: '🪓', sprinkler: '⛲' };
+        const icon = toolIcons[this.currentTool] || '🤚';
+        
+        ctx.font = '20px Outfit';
+        ctx.fillStyle = 'white';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.fillText(icon, this.x, this.y - this.radius - 45);
+        ctx.shadowBlur = 0;
     }
 }

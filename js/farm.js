@@ -10,13 +10,14 @@ export class FarmSystem {
     }
 
     generateParcels() {
-        // Simple ring of parcels
-        const radius = 500;
-        const count = 8;
+        // Larger ring of parcels with more spacing
+        const radius = 1200;
+        const count = 12;
         for (let i = 0; i < count; i++) {
             const angle = (i / count) * Math.PI * 2;
-            const px = Math.cos(angle) * radius;
-            const py = Math.sin(angle) * radius;
+            // Add some randomness to position
+            const px = Math.cos(angle) * radius + (Math.random() - 0.5) * 200;
+            const py = Math.sin(angle) * radius + (Math.random() - 0.5) * 200;
             
             this.parcels.push(new Parcel(px, py, this.parcelSize, this.tileSize));
         }
