@@ -13,17 +13,31 @@ class App {
     }
 
     async init() {
+        const joinScreen = document.getElementById('join-screen');
+        const nameInput = document.getElementById('player-name-input');
+        const btnStart = document.getElementById('btn-start');
+
+        btnStart.onclick = () => {
+            const name = nameInput.value.trim() || 'Granjero_' + Math.floor(Math.random() * 1000);
+            joinScreen.classList.add('hidden');
+            this.startGame(name);
+        };
+    }
+
+    async startGame(name) {
+        this.ui.loadingScreen.classList.remove('hidden');
+        
         // Simulate loading
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Create local player
-        const localPlayer = new Player('local', 'Granjero_' + Math.floor(Math.random() * 1000), true);
+        const localPlayer = new Player(this.network.socket?.id || 'local', name, true);
         this.game.setLocalPlayer(localPlayer);
         
         // Hide loading screen
         this.ui.hideLoading();
         
-        console.log('AgriAuto Initialized');
+        console.log('AgriAuto Initialized for:', name);
         
         // Initial setup
         this.ui.updateStats(localPlayer.inventory);
@@ -109,7 +123,7 @@ class App {
                     
                     // Sync farm update
                     const parcelIdx = this.game.farmSystem.parcels.indexOf(parcel);
-                    this.network.sendFarmUpdate(parcelIdx, tx, ty, action, p.name);
+                    this.network.sendFarmUpdate(parcelIdx, tx, ty, action, p);
                     
                     this.ui.updateStats(p.inventory);
                 }

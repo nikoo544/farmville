@@ -42,7 +42,8 @@ class Parcel {
         this.y = y - (size * tileSize) / 2;
         this.size = size;
         this.tileSize = tileSize;
-        this.owner = null;
+        this.ownerId = null;
+        this.ownerName = null;
         this.width = size * tileSize;
         this.height = size * tileSize;
         
@@ -101,7 +102,7 @@ class Parcel {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.font = '12px Outfit';
         ctx.textAlign = 'center';
-        ctx.fillText(this.owner ? `Granja de ${this.owner}` : 'Parcela Disponible', this.x + this.width / 2, this.y - 10);
+        ctx.fillText(this.ownerName ? `Granja de ${this.ownerName}` : 'Parcela Disponible', this.x + this.width / 2, this.y - 10);
 
         // Draw tiles
         for (let i = 0; i < this.tiles.length; i++) {
@@ -153,8 +154,12 @@ class Parcel {
     }
 
     interact(tx, ty, action, player) {
-        if (this.owner && this.owner !== player.name) return;
-        if (!this.owner) this.owner = player.name;
+        if (this.ownerId && this.ownerId !== player.id) return;
+        
+        if (!this.ownerId) {
+            this.ownerId = player.id;
+            this.ownerName = player.name;
+        }
 
         const idx = ty * this.size + tx;
         const tile = this.tiles[idx];

@@ -68,6 +68,11 @@ export class UI {
     }
 
     renderShop(category) {
+        if (category === 'inventory') {
+            this.renderInventory();
+            return;
+        }
+
         const items = {
             seeds: [
                 { id: 'wheat', name: 'Trigo', price: 10, icon: '🌾' },
@@ -95,6 +100,31 @@ export class UI {
                 <div class="item-price">$${item.price}</div>
             `;
             el.onclick = () => this.buyItem(item);
+            this.shopItemsContainer.appendChild(el);
+        });
+    }
+
+    renderInventory() {
+        const p = this.game.localPlayer;
+        if (!p) return;
+
+        this.shopItemsContainer.innerHTML = '';
+        
+        const invItems = [
+            { name: 'Dinero', value: `$${p.inventory.money}`, icon: '💰' },
+            { name: 'Cosecha', value: p.inventory.crops, icon: '🌾' },
+            { name: 'Semillas', value: p.inventory.seeds, icon: '🌱' },
+            { name: 'Herramienta', value: p.currentTool, icon: '⚒️' }
+        ];
+
+        invItems.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'shop-item inventory-item';
+            el.innerHTML = `
+                <div class="item-icon">${item.icon}</div>
+                <div class="item-name">${item.name}</div>
+                <div class="item-price">${item.value}</div>
+            `;
             this.shopItemsContainer.appendChild(el);
         });
     }

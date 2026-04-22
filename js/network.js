@@ -15,6 +15,18 @@ export class NetworkManager {
     }
 
     setupListeners() {
+        this.socket.on('worldState', (state) => {
+            state.parcels.forEach((pData, i) => {
+                const parcel = this.game.farmSystem.parcels[i];
+                if (parcel && pData.ownerId) {
+                    parcel.ownerId = pData.ownerId;
+                    parcel.ownerName = pData.ownerName;
+                    parcel.tiles = pData.tiles;
+                    parcel.machines = pData.machines;
+                }
+            });
+        });
+
         this.socket.on('currentPlayers', (players) => {
             Object.keys(players).forEach((id) => {
                 if (id !== this.socket.id) {
@@ -45,7 +57,10 @@ export class NetworkManager {
             // Handle remote farm updates
             const parcel = this.game.farmSystem.parcels[data.parcelIdx];
             if (parcel) {
-                parcel.interact(data.tx, data.ty, data.action, { name: data.playerName });
+                parcel.interact(data.tx, data.ty, data.action, { 
+                    id: data.playerId, 
+                    name: data.playerName 
+                });
             }
         });
     }
@@ -69,9 +84,16 @@ export class NetworkManager {
         }
     }
 
-    sendFarmUpdate(parcelIdx, tx, ty, action, playerName) {
+    sendFarmUpdate(parcelIdx, tx, ty, action, p) {
         if (this.socket) {
-            this.socket.emit('farmUpdate', { parcelIdx, tx, ty, action, playerName });
+            this.socket.emit('farmUpdate', { 
+                parcelIdx, 
+                tx, 
+                ty, 
+                action, 
+                playerId: p.id,
+                playerName: p.name 
+            });
         }
     }
 }

@@ -43,6 +43,7 @@
                     <button class="tab-btn active" data-tab="seeds">Semillas</button>
                     <button class="tab-btn" data-tab="tools">Herramientas</button>
                     <button class="tab-btn" data-tab="automation">Automatización</button>
+                    <button class="tab-btn" data-tab="inventory">Mochila</button>
                 </div>
                 <div class="shop-content" id="shop-items">
                     <!-- Items injected by JS -->
@@ -55,8 +56,18 @@
             </div>
         </div>
 
-        <!-- Loading Screen -->
-        <div id="loading-screen">
+        <!-- Join Screen -->
+        <div id="join-screen" class="overlay">
+            <div class="glass modal">
+                <h1>AgriAuto</h1>
+                <p>Elige tu nombre de granjero</p>
+                <input type="text" id="player-name-input" placeholder="Nombre..." maxlength="15">
+                <button id="btn-start" class="btn-primary">Empezar a Granjear</button>
+            </div>
+        </div>
+
+        <!-- Loading Screen (Initially Hidden) -->
+        <div id="loading-screen" class="hidden">
             <div class="loader"></div>
             <h1>AgriAuto</h1>
             <p>Conectando al servidor...</p>

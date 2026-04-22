@@ -21,6 +21,19 @@ app.use(express.static(__dirname));
 
 // Game State
 const players = {};
+const worldState = {
+    parcels: [] // Array of parcel states
+};
+
+// Initialize worldState for 12 parcels (matching client count)
+for (let i = 0; i < 12; i++) {
+    worldState.parcels.push({
+        ownerId: null,
+        ownerName: null,
+        tiles: Array(100).fill(null).map(() => ({ type: 'grass', growth: 0 })),
+        machines: []
+    });
+}
 
 io.on('connection', (socket) => {
     console.log('Jugador conectado:', socket.id);
@@ -35,8 +48,9 @@ io.on('connection', (socket) => {
         currentTool: 'hoe'
     };
 
-    // Send current players to the new player
+    // Send current players and world state to the new player
     socket.emit('currentPlayers', players);
+    socket.emit('worldState', worldState);
 
     // Broadcast new player to others
     socket.broadcast.emit('newPlayer', players[socket.id]);
@@ -53,7 +67,30 @@ io.on('connection', (socket) => {
 
     // Handle farm updates (e.g. planting)
     socket.on('farmUpdate', (data) => {
-        socket.broadcast.emit('farmUpdated', data);
+        const parcel = worldState.parcels[data.parcelIdx];
+        if (parcel) {
+            // Basic persistence logic
+            if (!parcel.ownerId) {
+                parcel.ownerId = data.playerId;
+                parcel.ownerName = data.playerName;
+            }
+            
+            const tileIdx = data.ty * 10 + data.tx;
+            if (data.action === 'till') parcel.tiles[tileIdx].type = 'tilled';
+            if (data.action === 'plant') {
+                parcel.tiles[tileIdx].type = 'crop';
+                parcel.tiles[tileIdx].growth = 0;
+            }
+            if (data.action === 'harvest') {
+                parcel.tiles[tileIdx].type = 'tilled';
+                parcel.tiles[tileIdx].growth = 0;
+            }
+            if (data.action === 'sprinkler') {
+                parcel.machines.push({ x: data.tx, y: data.ty, type: 'sprinkler' });
+            }
+
+            socket.broadcast.emit('farmUpdated', data);
+        }
     });
 
     socket.on('disconnect', () => {
