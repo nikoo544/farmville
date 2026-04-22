@@ -33,6 +33,22 @@ export class UI {
             }
         };
 
+        // Donation Chest Interaction
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyE') {
+                const p = this.game.localPlayer;
+                if (!p) return;
+                
+                // Dist to chest (at 0, 130 approx)
+                const distToChest = Math.sqrt(p.x ** 2 + (p.y - 130) ** 2);
+                if (distToChest < 80 && p.inventory.money >= 100) {
+                    p.inventory.money -= 100;
+                    this.game.app.network.sendDonation(100);
+                    this.updateStats(p.inventory);
+                }
+            }
+        });
+
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.onclick = (e) => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));

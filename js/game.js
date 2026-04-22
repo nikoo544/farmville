@@ -28,6 +28,7 @@ export class Game {
 
         this.farmSystem = new FarmSystem(this);
         
+        this.donations = 0;
         this.spawnTimer = 0;
 
         this.lastTime = 0;
@@ -77,26 +78,22 @@ export class Game {
         this.projectiles.forEach(p => {
             p.update(dt);
             
-            // Collision with enemies
+            // Collision with server-side enemies
             this.enemies.forEach(e => {
                 const dist = Math.sqrt((p.x - e.x)**2 + (p.y - e.y)**2);
                 if (dist < e.radius + p.radius) {
                     const damage = p.type === 'rocket' ? 100 : (p.type === 'arrow' ? 40 : 25);
                     e.health -= damage;
                     p.dead = true;
+                    // Note: Health sync back to server would be better, but for now we just show feedback
                     if (e.health <= 0) e.dead = true;
                 }
             });
         });
 
-        // Update Enemies
-        this.spawnTimer += dt;
-        if (this.spawnTimer > 3) {
-            this.spawnZombie();
-            this.spawnTimer = 0;
-        }
+        // Enemies are updated via Network events now
+        // But we still filter dead ones for smoothness
         this.enemies = this.enemies.filter(e => !e.dead);
-        this.enemies.forEach(e => e.update(dt, this.localPlayer, this.players));
 
         // Update other entities
         this.entities.forEach(entity => entity.update?.(dt));
@@ -194,6 +191,14 @@ export class Game {
         this.ctx.fillText('NEXUS', 0, 0);
         this.ctx.font = '20px Outfit';
         this.ctx.fillText('TIENDA', 0, 30);
+
+        // Global Donation Chest
+        this.ctx.fillStyle = '#facc15';
+        this.ctx.fillRect(-50, 100, 100, 60);
+        this.ctx.fillStyle = 'white';
+        this.ctx.font = 'bold 14px Outfit';
+        this.ctx.fillText('COFRE GLOBAL', 0, 120);
+        this.ctx.fillText(`$${this.donations}`, 0, 145);
     }
 }
 

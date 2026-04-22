@@ -22,8 +22,11 @@ app.use(express.static(__dirname));
 // Game State
 const players = {};
 const worldState = {
-    parcels: [], // Array of parcel states
-    vehicle: { x: 0, y: 300, angle: 0, driver: null }
+    parcels: [], 
+    vehicle: { id: 'tractor_main', x: 0, y: 300, angle: 0, driver: null },
+    moto: { id: 'moto_main', x: 100, y: 300, angle: 0, driver: null },
+    zombies: [],
+    globalDonations: 0
 };
 
 // Initialize worldState for 12 parcels (matching client count)
@@ -103,11 +106,23 @@ io.on('connection', (socket) => {
 
     // Handle Vehicle
     socket.on('vehicleUpdate', (data) => {
-        worldState.vehicle.x = data.x;
-        worldState.vehicle.y = data.y;
-        worldState.vehicle.angle = data.angle;
-        worldState.vehicle.driver = data.driver;
+        const v = data.id === 'moto_main' ? worldState.moto : worldState.vehicle;
+        v.x = data.x;
+        v.y = data.y;
+        v.angle = data.angle;
+        v.driver = data.driver;
         socket.broadcast.emit('vehicleMoved', data);
+    });
+
+    // Handle Shoot
+    socket.on('shoot', (data) => {
+        socket.broadcast.emit('shoot', data);
+    });
+
+    // Handle Donation
+    socket.on('donate', (amount) => {
+        worldState.globalDonations += amount;
+        io.emit('donationsUpdated', worldState.globalDonations);
     });
 
     socket.on('disconnect', () => {
@@ -116,6 +131,51 @@ io.on('connection', (socket) => {
         io.emit('playerDisconnected', socket.id);
     });
 });
+
+// Server Tick (Zombies and Growth)
+setInterval(() => {
+    // Spawn Zombies
+    if (worldState.zombies.length < 15) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 2000;
+        worldState.zombies.push({
+            id: 'zombie_' + Date.now() + Math.random(),
+            x: Math.cos(angle) * dist,
+            y: Math.sin(angle) * dist,
+            health: 100
+        });
+    }
+
+    // Move Zombies towards nearest player
+    worldState.zombies.forEach(z => {
+        let nearestDist = Infinity;
+        let target = null;
+        
+        Object.values(players).forEach(p => {
+            const d = Math.sqrt((p.x - z.x)**2 + (p.y - z.y)**2);
+            if (d < nearestDist) {
+                nearestDist = d;
+                target = p;
+            }
+        });
+
+        if (target) {
+            const angle = Math.atan2(target.y - z.y, target.x - z.x);
+            z.x += Math.cos(angle) * 3; // Server speed
+            z.y += Math.sin(angle) * 3;
+            
+            // Safe zone check (1000 radius)
+            const distToCenter = Math.sqrt(z.x**2 + z.y**2);
+            if (distToCenter < 1000) {
+                const pushAngle = Math.atan2(z.y, z.x);
+                z.x = Math.cos(pushAngle) * 1000;
+                z.y = Math.sin(pushAngle) * 1000;
+            }
+        }
+    });
+
+    io.emit('zombieUpdate', worldState.zombies);
+}, 100);
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {

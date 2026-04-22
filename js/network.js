@@ -25,6 +25,21 @@ export class NetworkManager {
                     parcel.machines = pData.machines;
                 }
             });
+            this.game.donations = state.globalDonations;
+        });
+
+        this.socket.on('zombieUpdate', (zombies) => {
+            this.game.enemies = zombies.map(z => {
+                const zombie = new Zombie(z.x, z.y);
+                zombie.id = z.id;
+                zombie.health = z.health;
+                return zombie;
+            });
+        });
+
+        this.socket.on('donationsUpdated', (amount) => {
+            this.game.donations = amount;
+            this.game.app.ui.receiveMessage('SISTEMA', `¡Donación recibida! Total global: $${amount}`);
         });
 
         this.socket.on('currentPlayers', (players) => {
@@ -146,6 +161,12 @@ export class NetworkManager {
                 playerId: p.id,
                 playerName: p.name 
             });
+        }
+    }
+
+    sendDonation(amount) {
+        if (this.socket) {
+            this.socket.emit('donate', amount);
         }
     }
 }
