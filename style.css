@@ -277,13 +277,15 @@ canvas {
     text-transform: uppercase;
 }
 
-.toggle-group, .hair-selector {
+.toggle-group, .hair-selector, .class-selector {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
-.toggle-btn, .hair-btn {
+.toggle-btn, .hair-btn, .class-btn {
     flex: 1;
+    min-width: 80px;
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid var(--glass-border);
     padding: 10px;
@@ -291,13 +293,18 @@ canvas {
     color: white;
     cursor: pointer;
     transition: all 0.2s;
+    font-family: 'Outfit', sans-serif;
 }
 
-.toggle-btn.active, .hair-btn.active {
+.toggle-btn.active, .hair-btn.active, .class-btn.active {
     background: var(--primary);
     color: var(--bg-dark);
     border-color: var(--primary);
 }
+
+.class-btn[data-class="warrior"].active { background: #ef4444; color: white; }
+.class-btn[data-class="mage"].active { background: #3b82f6; color: white; }
+.class-btn[data-class="fairy"].active { background: #d946ef; color: white; }
 
 #outfit-color {
     width: 100%;

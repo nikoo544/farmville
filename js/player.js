@@ -10,14 +10,18 @@ export class Player {
         this.color = isLocal ? '#4ade80' : '#f87171';
         this.gesture = null;
         
-        // Appearance (Habbo style)
+        // Appearance (D&D style)
         this.appearance = {
-            gender: 'male', // 'male', 'female'
+            gender: 'male', 
+            class: 'warrior', // 'mage', 'warrior', 'fairy'
             hairStyle: 0,
             hairColor: '#451a03',
             outfitColor: '#3b82f6',
             skinColor: '#fcd34d'
         };
+
+        this.isRabbit = false;
+        this.skillCooldown = 0;
         
         this.speed = 350;
         this.velocity = { x: 0, y: 0 };
@@ -41,7 +45,8 @@ export class Player {
             right: false,
             interact: false,
             vehicle: false,
-            shoot: false
+            shoot: false,
+            skill: false
         };
 
         this.mousePos = { x: 0, y: 0 };
@@ -71,6 +76,7 @@ export class Player {
             case 'KeyD': case 'ArrowRight': this.input.right = isDown; break;
             case 'KeyE': this.input.interact = isDown; break;
             case 'KeyV': this.input.vehicle = isDown; break;
+            case 'KeyQ': this.input.skill = isDown; break;
             case 'Digit1': this.currentTool = 'hoe'; break;
             case 'Digit2': this.currentTool = 'plant:wheat'; break;
             case 'Digit3': this.currentTool = 'scythe'; break;
@@ -123,6 +129,26 @@ export class Player {
         if (this.input.shoot && this.shootTimer <= 0 && this.currentTool.startsWith('weapon:')) {
             this.shoot();
         }
+
+        // Skill
+        if (this.input.skill && this.skillCooldown <= 0) {
+            this.useSkill();
+        }
+        if (this.skillCooldown > 0) this.skillCooldown -= dt;
+    }
+
+    useSkill() {
+        this.skillCooldown = 3;
+        const pClass = this.appearance.class;
+        if (pClass === 'mage') {
+            window.app.network.sendSkill('transform');
+        } else if (pClass === 'fairy') {
+            window.app.network.sendSkill('sparkle');
+        } else if (pClass === 'warrior') {
+            this.gesture = '🛡️ ¡RESISTID!';
+            setTimeout(() => this.gesture = null, 3000);
+            window.app.network.sendSkill('taunt');
+        }
     }
 
     shoot() {
@@ -148,86 +174,96 @@ export class Player {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Name Tag
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.font = 'bold 14px Outfit';
-        const nameWidth = ctx.measureText(this.name).width;
-        ctx.fillRect(-nameWidth/2 - 5, -85, nameWidth + 10, 20);
-        ctx.fillStyle = 'white';
-        ctx.textAlign = 'center';
-        ctx.fillText(this.name, 0, -70);
-
-        // Gesture/Emoji
-        if (this.gesture) {
-            ctx.font = '40px Outfit';
-            ctx.fillText(this.gesture, 0, -110);
+        // Transformation check
+        if (this.isRabbit) {
+            this.drawRabbit(ctx);
+            ctx.restore();
+            return;
         }
 
         // --- DRAW BODY ---
         const isFemale = this.appearance.gender === 'female';
+        const pClass = this.appearance.class;
         
         // Feet/Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath();
-        ctx.ellipse(0, 10, 20, 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 10, 25, 10, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Torso/Clothes
-        ctx.fillStyle = this.appearance.outfitColor;
-        if (isFemale) {
-            // Dress style
+        // Wings (Fairy only)
+        if (pClass === 'fairy') {
+            ctx.fillStyle = 'rgba(232, 121, 249, 0.4)';
             ctx.beginPath();
-            ctx.moveTo(-15, 10);
-            ctx.lineTo(15, 10);
-            ctx.lineTo(10, -20);
-            ctx.lineTo(-10, -20);
+            ctx.ellipse(-20, -20, 30, 15, -Math.PI/4, 0, Math.PI * 2);
+            ctx.ellipse(20, -20, 30, 15, Math.PI/4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Torso/Clothes
+        ctx.fillStyle = pClass === 'warrior' ? '#94a3b8' : this.appearance.outfitColor;
+        if (isFemale) {
+            ctx.beginPath();
+            ctx.moveTo(-18, 10); ctx.lineTo(18, 10); ctx.lineTo(12, -25); ctx.lineTo(-12, -25);
             ctx.closePath();
             ctx.fill();
         } else {
-            // Shirt style
-            ctx.fillRect(-15, -20, 30, 30);
+            ctx.fillRect(-18, -25, 36, 35);
         }
-
-        // Arms
-        ctx.fillStyle = this.appearance.skinColor;
-        ctx.fillRect(-22, -15, 8, 15);
-        ctx.fillRect(14, -15, 8, 15);
 
         // Head
         ctx.fillStyle = this.appearance.skinColor;
         ctx.beginPath();
-        ctx.arc(0, -35, 15, 0, Math.PI * 2);
+        ctx.arc(0, -40, 18, 0, Math.PI * 2);
         ctx.fill();
 
         // Eyes
         ctx.fillStyle = '#1e293b';
         ctx.beginPath();
-        ctx.arc(-5, -38, 2, 0, Math.PI * 2);
-        ctx.arc(5, -38, 2, 0, Math.PI * 2);
+        ctx.arc(-6, -42, 2.5, 0, Math.PI * 2);
+        ctx.arc(6, -42, 2.5, 0, Math.PI * 2);
         ctx.fill();
 
-        // Hair
-        ctx.fillStyle = this.appearance.hairColor;
-        const style = this.appearance.hairStyle;
-        
-        if (style === 0) { // Short
+        // Class Specific Headgear
+        if (pClass === 'mage') {
+            ctx.fillStyle = '#312e81';
             ctx.beginPath();
-            ctx.arc(0, -42, 16, Math.PI, 0);
+            ctx.moveTo(-25, -50); ctx.lineTo(0, -90); ctx.lineTo(25, -50);
+            ctx.closePath();
             ctx.fill();
-        } else if (style === 1) { // Long/Pigtails
-            ctx.beginPath();
-            ctx.arc(0, -42, 16, Math.PI, 0);
-            ctx.fill();
-            ctx.fillRect(-18, -40, 8, 30);
-            ctx.fillRect(10, -40, 8, 30);
-        } else if (style === 2) { // Spiky/Cool
-            ctx.beginPath();
-            ctx.moveTo(-16, -40);
-            ctx.lineTo(0, -60);
-            ctx.lineTo(16, -40);
-            ctx.fill();
+        } else if (pClass === 'warrior') {
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(-20, -60, 40, 15);
+            ctx.fillStyle = '#f43f5e'; // Plume
+            ctx.fillRect(-2, -75, 4, 15);
         }
 
+        // Name Tag (Moved up for headgear)
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.font = 'bold 14px Outfit';
+        const nameWidth = ctx.measureText(this.name).width;
+        ctx.fillRect(-nameWidth/2 - 5, -115, nameWidth + 10, 20);
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.name, 0, -100);
+
         ctx.restore();
+    }
+
+    drawRabbit(ctx) {
+        ctx.fillStyle = '#e5e7eb';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 15, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(10, -5, 8, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Ears
+        ctx.fillRect(8, -20, 3, 10);
+        ctx.fillRect(12, -20, 3, 10);
+        
+        ctx.fillStyle = 'black';
+        ctx.font = 'bold 12px Outfit';
+        ctx.fillText(this.name, 0, -30);
     }
 }

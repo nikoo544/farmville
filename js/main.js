@@ -21,12 +21,21 @@ class App {
 
         let selectedGender = 'male';
         let selectedHair = 0;
+        let selectedClass = 'warrior';
 
         document.querySelectorAll('.toggle-btn').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 selectedGender = btn.dataset.gender;
+            };
+        });
+
+        document.querySelectorAll('.class-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.class-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedClass = btn.dataset.class;
             };
         });
 
@@ -39,14 +48,15 @@ class App {
         });
 
         btnStart.onclick = () => {
-            const name = nameInput.value.trim() || 'Habbo_' + Math.floor(Math.random() * 1000);
+            const name = nameInput.value.trim() || 'Heroe_' + Math.floor(Math.random() * 1000);
             const outfit = document.getElementById('outfit-color').value;
             
             joinScreen.classList.add('hidden');
             this.startGame(name, {
                 gender: selectedGender,
                 hairStyle: selectedHair,
-                outfitColor: outfit
+                outfitColor: outfit,
+                class: selectedClass
             });
         };
     }

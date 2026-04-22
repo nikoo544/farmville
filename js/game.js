@@ -152,9 +152,20 @@ export class Game {
 
         for (let y = startY; y < endY; y += this.gridSize) {
             this.ctx.beginPath();
-            this.ctx.moveTo(startX, y);
-            this.ctx.lineTo(endX, y);
-            this.ctx.stroke();
+        // Draw green meadow with paths
+        this.ctx.fillStyle = '#14532d'; // Dark green
+        this.ctx.fillRect(-this.worldSize/2, -this.worldSize/2, this.worldSize, this.worldSize);
+        
+        // Draw some "Nature" details
+        this.ctx.fillStyle = '#15803d';
+        for(let i = -10; i < 10; i++) {
+            for(let j = -10; j < 10; j++) {
+                if((i+j) % 3 === 0) {
+                    this.ctx.beginPath();
+                    this.ctx.arc(i * 400, j * 400, 100, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+            }
         }
     }
 
@@ -171,31 +182,49 @@ export class Game {
     }
 
     drawNexus() {
-        // Draw the central social plaza
-        const size = 300;
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        this.drawCitadel();
+    }
+
+    drawCitadel() {
+        // Draw Central Plaza
+        this.ctx.fillStyle = '#475569';
         this.ctx.beginPath();
-        this.ctx.arc(0, 0, size, 0, Math.PI * 2);
+        this.ctx.arc(0, 0, 400, 0, Math.PI * 2);
         this.ctx.fill();
 
+        // Draw Houses around the plaza
+        const houseCount = 6;
+        for (let i = 0; i < houseCount; i++) {
+            const angle = (i / houseCount) * Math.PI * 2;
+            const hx = Math.cos(angle) * 600;
+            const hy = Math.sin(angle) * 600;
+            this.drawHouse(hx, hy);
+        }
+
+        // Title
         this.ctx.fillStyle = 'white';
-        this.ctx.font = 'bold 40px Outfit';
+        this.ctx.font = 'bold 50px Outfit';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('PLAZA CENTRAL', 0, 0);
+        this.ctx.fillText('CITADELA MÁGICA', 0, 0);
+    }
 
-        // Draw Wall
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-        this.ctx.lineWidth = 15;
+    drawHouse(x, y) {
+        this.ctx.save();
+        this.ctx.translate(x, y);
+        // Base
+        this.ctx.fillStyle = '#92400e';
+        this.ctx.fillRect(-60, -40, 120, 80);
+        // Roof
+        this.ctx.fillStyle = '#7f1d1d';
         this.ctx.beginPath();
-        this.ctx.arc(0, 0, 1000, 0, Math.PI * 2);
-        this.ctx.stroke();
-
-        // Draw Gate (at bottom)
-        this.ctx.strokeStyle = '#4ade80';
-        this.ctx.lineWidth = 20;
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, 1000, Math.PI * 0.4, Math.PI * 0.6);
-        this.ctx.stroke();
+        this.ctx.moveTo(-70, -40);
+        this.ctx.lineTo(0, -90);
+        this.ctx.lineTo(70, -40);
+        this.ctx.fill();
+        // Door
+        this.ctx.fillStyle = '#451a03';
+        this.ctx.fillRect(-15, 10, 30, 30);
+        this.ctx.restore();
     }
 }
 

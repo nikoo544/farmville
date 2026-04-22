@@ -56,6 +56,23 @@ export class NetworkManager {
             }
         });
 
+        this.socket.on('playerTransformed', (data) => {
+            if (data.id === this.socket.id) {
+                this.game.localPlayer.isRabbit = data.status;
+                this.game.app.ui.receiveMessage('SISTEMA', data.status ? '¡Te han convertido en conejo!' : 'Has vuelto a la normalidad.');
+            } else {
+                const remote = this.game.players.get(data.id);
+                if (remote) remote.isRabbit = data.status;
+            }
+        });
+
+        this.socket.on('skillEffect', (data) => {
+            // Visual feedback could be added here
+            const p = this.game.players.get(data.id);
+            const name = p ? p.name : 'Alguien';
+            this.game.app.ui.receiveMessage('COMBATE', `${name} usó una habilidad: ${data.type}`);
+        });
+
         this.socket.on('currentPlayers', (players) => {
             Object.keys(players).forEach((id) => {
                 if (id !== this.socket.id) {
@@ -121,7 +138,8 @@ export class NetworkManager {
                 currentTool: this.game.localPlayer.currentTool,
                 inVehicle: this.game.localPlayer.inVehicle,
                 name: this.game.localPlayer.name,
-                appearance: this.game.localPlayer.appearance
+                appearance: this.game.localPlayer.appearance,
+                isRabbit: this.game.localPlayer.isRabbit
             });
         }
     }
@@ -154,6 +172,12 @@ export class NetworkManager {
             this.socket.emit('shoot', { x, y, angle, type, id: this.socket.id });
             // Spawn locally too
             this.game.spawnProjectile(x, y, angle, type, this.socket.id);
+        }
+    }
+
+    sendSkill(type) {
+        if (this.socket) {
+            this.socket.emit('skill', { type });
         }
     }
 

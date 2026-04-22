@@ -40,7 +40,8 @@ io.on('connection', (socket) => {
         name: 'Nuevo Jugador',
         color: '#' + Math.floor(Math.random()*16777215).toString(16),
         currentTool: 'hoe',
-        appearance: { gender: 'male', hairStyle: 0, outfitColor: '#3b82f6' }
+        appearance: { gender: 'male', class: 'warrior', hairStyle: 0, outfitColor: '#3b82f6' },
+        isRabbit: false
     };
 
     // Send current players and world state to the new player
@@ -58,6 +59,7 @@ io.on('connection', (socket) => {
             players[socket.id].currentTool = data.currentTool;
             players[socket.id].name = data.name;
             players[socket.id].appearance = data.appearance;
+            players[socket.id].isRabbit = data.isRabbit;
             
             socket.broadcast.emit('playerMoved', players[socket.id]);
         }
@@ -96,6 +98,33 @@ io.on('connection', (socket) => {
     // Handle Gesture
     socket.on('gesture', (emoji) => {
         socket.broadcast.emit('playerGesture', { id: socket.id, emoji });
+    });
+
+    // Handle Skill
+    socket.on('skill', (data) => {
+        const p = players[socket.id];
+        if (!p) return;
+
+        if (data.type === 'transform') {
+            // Server-side transformation logic
+            Object.values(players).forEach(other => {
+                if (other.id !== p.id) {
+                    const dist = Math.sqrt((p.x - other.x)**2 + (p.y - other.y)**2);
+                    if (dist < 250) {
+                        other.isRabbit = true;
+                        io.emit('playerTransformed', { id: other.id, status: true });
+                        setTimeout(() => {
+                            if (players[other.id]) {
+                                players[other.id].isRabbit = false;
+                                io.emit('playerTransformed', { id: other.id, status: false });
+                            }
+                        }, 10000);
+                    }
+                }
+            });
+        }
+        
+        socket.broadcast.emit('skillEffect', { id: socket.id, type: data.type });
     });
 
     socket.on('disconnect', () => {
