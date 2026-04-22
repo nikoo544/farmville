@@ -18,16 +18,40 @@ class App {
         const joinScreen = document.getElementById('join-screen');
         const nameInput = document.getElementById('player-name-input');
         const btnStart = document.getElementById('btn-start');
+        const previewCanvas = document.getElementById('preview-canvas');
 
         let selectedGender = 'male';
         let selectedHair = 0;
         let selectedClass = 'warrior';
+
+        const updatePreview = () => {
+            const ctx = previewCanvas.getContext('2d');
+            ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            
+            // Create a temporary player for preview
+            const previewPlayer = new Player('preview', 'Héroe', false);
+            previewPlayer.x = previewCanvas.width / 2;
+            previewPlayer.y = previewCanvas.height / 2 + 30;
+            previewPlayer.appearance = {
+                gender: selectedGender,
+                hairStyle: selectedHair,
+                class: selectedClass,
+                outfitColor: document.getElementById('outfit-color').value,
+                hairColor: '#451a03',
+                skinColor: '#fcd34d'
+            };
+            previewPlayer.draw(ctx);
+        };
+
+        // Initial preview
+        setTimeout(updatePreview, 100);
 
         document.querySelectorAll('.toggle-btn').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 selectedGender = btn.dataset.gender;
+                updatePreview();
             };
         });
 
@@ -36,6 +60,7 @@ class App {
                 document.querySelectorAll('.class-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 selectedClass = btn.dataset.class;
+                updatePreview();
             };
         });
 
@@ -44,8 +69,11 @@ class App {
                 document.querySelectorAll('.hair-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 selectedHair = parseInt(btn.dataset.style);
+                updatePreview();
             };
         });
+
+        document.getElementById('outfit-color').oninput = updatePreview;
 
         btnStart.onclick = () => {
             const name = nameInput.value.trim() || 'Heroe_' + Math.floor(Math.random() * 1000);

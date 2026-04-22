@@ -41,7 +41,8 @@ io.on('connection', (socket) => {
         color: '#' + Math.floor(Math.random()*16777215).toString(16),
         currentTool: 'hoe',
         appearance: { gender: 'male', class: 'warrior', hairStyle: 0, outfitColor: '#3b82f6' },
-        isRabbit: false
+        isRabbit: false,
+        mood: ''
     };
 
     // Send current players and world state to the new player
@@ -60,10 +61,9 @@ io.on('connection', (socket) => {
             players[socket.id].name = data.name;
             players[socket.id].appearance = data.appearance;
             players[socket.id].isRabbit = data.isRabbit;
+            players[socket.id].mood = data.mood;
             
             socket.broadcast.emit('playerMoved', players[socket.id]);
-        }
-    });
 
     // Social events only
 

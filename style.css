@@ -251,13 +251,31 @@ canvas {
 }
 
 .modal {
-    padding: 40px;
+    padding: 30px;
     text-align: center;
-    max-width: 450px;
+    max-width: 480px;
     width: 90%;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
+}
+
+.preview-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--primary);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+#preview-canvas {
+    width: 100%;
+    height: 100%;
 }
 
 .customization-group {

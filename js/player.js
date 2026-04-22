@@ -22,6 +22,7 @@ export class Player {
 
         this.isRabbit = false;
         this.skillCooldown = 0;
+        this.mood = '';
         
         this.speed = 350;
         this.velocity = { x: 0, y: 0 };
@@ -246,6 +247,13 @@ export class Player {
         ctx.fillStyle = 'white';
         ctx.textAlign = 'center';
         ctx.fillText(this.name, 0, -100);
+
+        // Mood/Status
+        if (this.mood) {
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.font = 'italic 12px Outfit';
+            ctx.fillText(`"${this.mood}"`, 0, -82);
+        }
 
         ctx.restore();
     }

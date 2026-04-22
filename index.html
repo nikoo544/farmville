@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgriAuto - Granja Cooperativa</title>
+    <title>DNDSocial - Citadela Mágica</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -78,9 +78,14 @@
 
         <div id="join-screen" class="overlay">
             <div class="glass modal">
-                <h1>AgriAuto Social</h1>
-                <p>Personaliza tu avatar</p>
-                <input type="text" id="player-name-input" placeholder="Tu Nombre..." maxlength="15">
+                <h1>DNDSocial</h1>
+                <p>Crea tu héroe de la Citadela</p>
+                
+                <div class="preview-container">
+                    <canvas id="preview-canvas" width="150" height="150"></canvas>
+                </div>
+
+                <input type="text" id="player-name-input" placeholder="Tu Nombre de Héroe..." maxlength="15">
                 
                 <div class="customization-group">
                     <label>Clase:</label>

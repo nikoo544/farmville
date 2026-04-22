@@ -94,6 +94,8 @@ export class NetworkManager {
                 remotePlayer.inVehicle = playerInfo.inVehicle;
                 remotePlayer.name = playerInfo.name; 
                 remotePlayer.appearance = playerInfo.appearance; // Sync appearance
+                remotePlayer.isRabbit = playerInfo.isRabbit;
+                remotePlayer.mood = playerInfo.mood; // Sync mood
             }
         });
 
@@ -139,7 +141,8 @@ export class NetworkManager {
                 inVehicle: this.game.localPlayer.inVehicle,
                 name: this.game.localPlayer.name,
                 appearance: this.game.localPlayer.appearance,
-                isRabbit: this.game.localPlayer.isRabbit
+                isRabbit: this.game.localPlayer.isRabbit,
+                mood: this.game.localPlayer.mood
             });
         }
     }

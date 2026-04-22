@@ -18,7 +18,12 @@ export class UI {
         const chatInput = document.getElementById('chat-input');
         chatInput.onkeydown = (e) => {
             if (e.code === 'Enter' && chatInput.value.trim()) {
-                this.game.app.network.sendMessage(chatInput.value.trim());
+                const val = chatInput.value.trim();
+                if (val.startsWith('/')) {
+                    this.handleCommand(val);
+                } else {
+                    this.game.app.network.sendMessage(val);
+                }
                 chatInput.value = '';
                 chatInput.blur();
             }
@@ -214,6 +219,24 @@ export class UI {
         p.inventory.corn = 0;
         
         this.updateStats(p.inventory);
+    }
+
+    handleCommand(cmd) {
+        const parts = cmd.split(' ');
+        const action = parts[0].toLowerCase();
+        
+        if (action === '/d20') {
+            const roll = Math.floor(Math.random() * 20) + 1;
+            this.game.app.network.sendMessage(`🎲 Lanzó un dado d20: ¡Sacó un ${roll}!`);
+            this.game.localPlayer.gesture = `🎲 ${roll}`;
+            setTimeout(() => this.game.localPlayer.gesture = null, 4000);
+        } else if (action === '/mood') {
+            const mood = parts.slice(1).join(' ');
+            this.game.localPlayer.mood = mood;
+            this.receiveMessage('SISTEMA', `Estado actualizado: ${mood}`);
+        } else {
+            this.receiveMessage('SISTEMA', `Comandos: /d20, /mood [mensaje]`);
+        }
     }
 
     receiveMessage(name, text) {
