@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriAuto - Granja Cooperativa</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Game Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- UI Overlays -->
+        <div id="ui-container">
+            <!-- HUD -->
+            <div id="hud" class="glass">
+                <div class="stat">
+                    <span class="icon">💰</span>
+                    <span id="money-display">0</span>
+                </div>
+                <div class="stat" id="sell-zone" title="Haz clic para vender en el Nexus">
+                    <span class="icon">🌾</span>
+                    <span id="crop-display">0</span>
+                </div>
+                <div class="stat divider"></div>
+                <div class="stat">
+                    <span class="icon" id="tool-indicator">⚒️</span>
+                    <span class="tool-hint">1-3</span>
+                </div>
+            </div>
+
+            <!-- Shop Menu (Initially Hidden) -->
+            <div id="shop-menu" class="glass hidden">
+                <div class="shop-header">
+                    <h2>La Tienda del Nexus</h2>
+                    <button id="close-shop" class="btn-close">×</button>
+                </div>
+                <div class="shop-tabs">
+                    <button class="tab-btn active" data-tab="seeds">Semillas</button>
+                    <button class="tab-btn" data-tab="tools">Herramientas</button>
+                    <button class="tab-btn" data-tab="automation">Automatización</button>
+                </div>
+                <div class="shop-content" id="shop-items">
+                    <!-- Items injected by JS -->
+                </div>
+            </div>
+
+            <!-- Interaction Prompt -->
+            <div id="interaction-prompt" class="hidden">
+                Presiona <span class="key">E</span> para interactuar
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="loader"></div>
+            <h1>AgriAuto</h1>
+            <p>Conectando al servidor...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/main.js" type="module"></script>
+</body>
+</html>
