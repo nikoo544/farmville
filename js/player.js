@@ -9,9 +9,17 @@ export class Player {
         this.radius = 25;
         this.color = isLocal ? '#4ade80' : '#f87171';
         this.gesture = null;
-        this.radius = 20;
         
-        this.speed = 300;
+        // Appearance (Habbo style)
+        this.appearance = {
+            gender: 'male', // 'male', 'female'
+            hairStyle: 0,
+            hairColor: '#451a03',
+            outfitColor: '#3b82f6',
+            skinColor: '#fcd34d'
+        };
+        
+        this.speed = 350;
         this.velocity = { x: 0, y: 0 };
         
         this.inventory = {
@@ -137,41 +145,89 @@ export class Player {
     draw(ctx) {
         if (this.inVehicle) return;
 
-        // Shadow/Glow
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = this.color;
-        
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.shadowBlur = 0;
+        ctx.save();
+        ctx.translate(this.x, this.y);
 
-        // Name tag
+        // Name Tag
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.font = 'bold 14px Outfit';
+        const nameWidth = ctx.measureText(this.name).width;
+        ctx.fillRect(-nameWidth/2 - 5, -85, nameWidth + 10, 20);
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 16px Outfit';
         ctx.textAlign = 'center';
-        ctx.fillText(this.name, this.x, this.y - this.radius - 25);
+        ctx.fillText(this.name, 0, -70);
 
         // Gesture/Emoji
         if (this.gesture) {
             ctx.font = '40px Outfit';
-            ctx.fillText(this.gesture, this.x, this.y - this.radius - 60);
+            ctx.fillText(this.gesture, 0, -110);
         }
 
-        // Tool Indicator Overlay (Only for local player or to show what others are doing)
-        const toolIcons = { 
-            hoe: '⚒️', 'plant:wheat': '🌾', 'plant:carrot': '🥕', 'plant:corn': '🌽',
-            scythe: '🪓', sprinkler: '⛲', 'weapon:pistol': '🔫', 'weapon:bow': '🏹', 'weapon:bazooka': '🚀' 
-        };
-        const icon = toolIcons[this.currentTool] || '🤚';
+        // --- DRAW BODY ---
+        const isFemale = this.appearance.gender === 'female';
         
-        ctx.font = '20px Outfit';
-        ctx.fillStyle = 'white';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.fillText(icon, this.x, this.y - this.radius - 45);
-        ctx.shadowBlur = 0;
+        // Feet/Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath();
+        ctx.ellipse(0, 10, 20, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Torso/Clothes
+        ctx.fillStyle = this.appearance.outfitColor;
+        if (isFemale) {
+            // Dress style
+            ctx.beginPath();
+            ctx.moveTo(-15, 10);
+            ctx.lineTo(15, 10);
+            ctx.lineTo(10, -20);
+            ctx.lineTo(-10, -20);
+            ctx.closePath();
+            ctx.fill();
+        } else {
+            // Shirt style
+            ctx.fillRect(-15, -20, 30, 30);
+        }
+
+        // Arms
+        ctx.fillStyle = this.appearance.skinColor;
+        ctx.fillRect(-22, -15, 8, 15);
+        ctx.fillRect(14, -15, 8, 15);
+
+        // Head
+        ctx.fillStyle = this.appearance.skinColor;
+        ctx.beginPath();
+        ctx.arc(0, -35, 15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyes
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.arc(-5, -38, 2, 0, Math.PI * 2);
+        ctx.arc(5, -38, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Hair
+        ctx.fillStyle = this.appearance.hairColor;
+        const style = this.appearance.hairStyle;
+        
+        if (style === 0) { // Short
+            ctx.beginPath();
+            ctx.arc(0, -42, 16, Math.PI, 0);
+            ctx.fill();
+        } else if (style === 1) { // Long/Pigtails
+            ctx.beginPath();
+            ctx.arc(0, -42, 16, Math.PI, 0);
+            ctx.fill();
+            ctx.fillRect(-18, -40, 8, 30);
+            ctx.fillRect(10, -40, 8, 30);
+        } else if (style === 2) { // Spiky/Cool
+            ctx.beginPath();
+            ctx.moveTo(-16, -40);
+            ctx.lineTo(0, -60);
+            ctx.lineTo(16, -40);
+            ctx.fill();
+        }
+
+        ctx.restore();
     }
 }

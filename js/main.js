@@ -19,14 +19,39 @@ class App {
         const nameInput = document.getElementById('player-name-input');
         const btnStart = document.getElementById('btn-start');
 
+        let selectedGender = 'male';
+        let selectedHair = 0;
+
+        document.querySelectorAll('.toggle-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedGender = btn.dataset.gender;
+            };
+        });
+
+        document.querySelectorAll('.hair-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.hair-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedHair = parseInt(btn.dataset.style);
+            };
+        });
+
         btnStart.onclick = () => {
-            const name = nameInput.value.trim() || 'Granjero_' + Math.floor(Math.random() * 1000);
+            const name = nameInput.value.trim() || 'Habbo_' + Math.floor(Math.random() * 1000);
+            const outfit = document.getElementById('outfit-color').value;
+            
             joinScreen.classList.add('hidden');
-            this.startGame(name);
+            this.startGame(name, {
+                gender: selectedGender,
+                hairStyle: selectedHair,
+                outfitColor: outfit
+            });
         };
     }
 
-    async startGame(name) {
+    async startGame(name, appearance) {
         this.ui.loadingScreen.classList.remove('hidden');
         
         // Simulate loading
@@ -34,6 +59,8 @@ class App {
         
         // Create local player
         const localPlayer = new Player(this.network.socket?.id || 'local', name, true);
+        localPlayer.appearance = { ...localPlayer.appearance, ...appearance };
+        
         this.game.setLocalPlayer(localPlayer);
         
         // Hide loading screen

@@ -84,7 +84,8 @@ export class NetworkManager {
                 remotePlayer.y = playerInfo.y;
                 remotePlayer.currentTool = playerInfo.currentTool;
                 remotePlayer.inVehicle = playerInfo.inVehicle;
-                remotePlayer.name = playerInfo.name; // Ensure name is synced
+                remotePlayer.name = playerInfo.name; 
+                remotePlayer.appearance = playerInfo.appearance; // Sync appearance
             }
         });
 
@@ -127,6 +128,7 @@ export class NetworkManager {
         remotePlayer.x = playerInfo.x;
         remotePlayer.y = playerInfo.y;
         remotePlayer.color = playerInfo.color;
+        remotePlayer.appearance = playerInfo.appearance; // Initial appearance
         this.game.players.set(playerInfo.id, remotePlayer);
         this.game.entities.push(remotePlayer);
     }
@@ -138,7 +140,8 @@ export class NetworkManager {
                 y, 
                 currentTool: this.game.localPlayer.currentTool,
                 inVehicle: this.game.localPlayer.inVehicle,
-                name: this.game.localPlayer.name
+                name: this.game.localPlayer.name,
+                appearance: this.game.localPlayer.appearance
             });
         }
     }

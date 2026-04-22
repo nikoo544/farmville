@@ -47,10 +47,11 @@ io.on('connection', (socket) => {
     players[socket.id] = {
         id: socket.id,
         x: (Math.random() - 0.5) * 500,
-        y: (Math.random() - 0.5) * 500 + 200,
-        name: 'Granjero_' + socket.id.substr(0, 4),
+        y: (Math.random() - 0.5) * 500,
+        name: 'Nuevo Jugador',
         color: '#' + Math.floor(Math.random()*16777215).toString(16),
-        currentTool: 'hoe'
+        currentTool: 'hoe',
+        appearance: { gender: 'male', hairStyle: 0, outfitColor: '#3b82f6' }
     };
 
     // Send current players and world state to the new player
@@ -61,11 +62,14 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('newPlayer', players[socket.id]);
 
     // Handle movement
-    socket.on('playerMovement', (movementData) => {
+    socket.on('playerMovement', (data) => {
         if (players[socket.id]) {
-            players[socket.id].x = movementData.x;
-            players[socket.id].y = movementData.y;
-            players[socket.id].currentTool = movementData.currentTool;
+            players[socket.id].x = data.x;
+            players[socket.id].y = data.y;
+            players[socket.id].currentTool = data.currentTool;
+            players[socket.id].name = data.name;
+            players[socket.id].appearance = data.appearance;
+            
             socket.broadcast.emit('playerMoved', players[socket.id]);
         }
     });

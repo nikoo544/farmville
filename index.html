@@ -76,13 +76,35 @@
             </div>
         </div>
 
-        <!-- Join Screen -->
         <div id="join-screen" class="overlay">
             <div class="glass modal">
-                <h1>AgriAuto</h1>
-                <p>Elige tu nombre de granjero</p>
-                <input type="text" id="player-name-input" placeholder="Nombre..." maxlength="15">
-                <button id="btn-start" class="btn-primary">Empezar a Granjear</button>
+                <h1>AgriAuto Social</h1>
+                <p>Personaliza tu avatar</p>
+                <input type="text" id="player-name-input" placeholder="Tu Nombre..." maxlength="15">
+                
+                <div class="customization-group">
+                    <label>Género:</label>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" data-gender="male">Hombre</button>
+                        <button class="toggle-btn" data-gender="female">Mujer</button>
+                    </div>
+                </div>
+
+                <div class="customization-group">
+                    <label>Peinado:</label>
+                    <div class="hair-selector">
+                        <button class="hair-btn active" data-style="0">Corto</button>
+                        <button class="hair-btn" data-style="1">Largo</button>
+                        <button class="hair-btn" data-style="2">Pico</button>
+                    </div>
+                </div>
+
+                <div class="customization-group">
+                    <label>Ropa:</label>
+                    <input type="color" id="outfit-color" value="#3b82f6">
+                </div>
+
+                <button id="btn-start" class="btn-primary">Entrar al Mundo</button>
             </div>
         </div>
 
