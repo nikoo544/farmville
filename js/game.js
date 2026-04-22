@@ -1,4 +1,4 @@
-import { FarmSystem } from './farm.js';
+import { Player } from './player.js';
 
 export class Game {
     constructor() {
@@ -13,6 +13,8 @@ export class Game {
             zoom: 1
         };
 
+        this.assets = {};
+
         this.worldSize = 5000; // Large world
         this.gridSize = 64; // Size of each tile
         
@@ -22,12 +24,9 @@ export class Game {
         this.players = new Map();
         this.localPlayer = null;
         
-        this.vehicle = new Vehicle(0, 300); // Tractor
         this.moto = new Motorcycle(100, 300); // Moto
-        this.entities.push(this.vehicle, this.moto);
+        this.entities.push(this.moto);
 
-        this.farmSystem = new FarmSystem(this);
-        
         this.donations = 0;
         this.drone = null;
         this.spawnTimer = 0;
@@ -64,6 +63,8 @@ export class Game {
     }
 
     update(dt) {
+        if (this.paused) return;
+        
         if (this.localPlayer) {
             this.localPlayer.update(dt);
             
@@ -71,8 +72,6 @@ export class Game {
             this.camera.x = this.localPlayer.x - this.width / 2;
             this.camera.y = this.localPlayer.y - this.height / 2;
         }
-
-        this.farmSystem.update(dt);
 
         // Update Projectiles
         this.projectiles = this.projectiles.filter(p => !p.dead);
@@ -110,13 +109,16 @@ export class Game {
         
         this.ctx.save();
         this.ctx.translate(-this.camera.x, -this.camera.y);
+        this.ctx.fillRect(-this.camera.x, -this.camera.y, this.canvas.width, this.canvas.height);
+        this.ctx.restore();
+
+        this.ctx.save();
+        this.ctx.translate(-this.camera.x, -this.camera.y);
         this.ctx.scale(this.camera.zoom, this.camera.zoom);
 
         this.drawGrid();
         this.drawNexus();
         
-        this.farmSystem.draw(this.ctx);
-
         this.projectiles.forEach(p => p.draw(this.ctx));
         this.enemies.forEach(e => e.draw(this.ctx));
         if (this.drone) this.drone.draw(this.ctx);
@@ -169,43 +171,17 @@ export class Game {
     }
 
     drawNexus() {
-        // Draw the central shop hub
+        // Draw the central social plaza
         const size = 300;
-        const x = -size / 2;
-        const y = -size / 2;
-
-        // Glow
-        const grad = this.ctx.createRadialGradient(0, 0, 50, 0, 0, 200);
-        grad.addColorStop(0, 'rgba(139, 92, 246, 0.3)');
-        grad.addColorStop(1, 'rgba(139, 92, 246, 0)');
-        this.ctx.fillStyle = grad;
-        this.ctx.fillRect(-200, -200, 400, 400);
-
-        // Core
-        this.ctx.fillStyle = '#8b5cf6';
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
         this.ctx.beginPath();
-        this.ctx.roundRect(x, y, size, size, 20);
+        this.ctx.arc(0, 0, size, 0, Math.PI * 2);
         this.ctx.fill();
-        
-        this.ctx.strokeStyle = '#c084fc';
-        this.ctx.lineWidth = 4;
-        this.ctx.stroke();
 
-        // Icon/Text
         this.ctx.fillStyle = 'white';
         this.ctx.font = 'bold 40px Outfit';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('NEXUS', 0, 0);
-        this.ctx.font = '20px Outfit';
-        this.ctx.fillText('TIENDA', 0, 30);
-
-        // Global Donation Chest
-        this.ctx.fillStyle = '#facc15';
-        this.ctx.fillRect(-50, 100, 100, 60);
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = 'bold 14px Outfit';
-        this.ctx.fillText('COFRE GLOBAL', 0, 120);
-        this.ctx.fillText(`$${this.donations}`, 0, 145);
+        this.ctx.fillText('PLAZA CENTRAL', 0, 0);
 
         // Draw Wall
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';

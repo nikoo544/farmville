@@ -22,23 +22,12 @@ app.use(express.static(__dirname));
 // Game State
 const players = {};
 const worldState = {
-    parcels: [], 
     vehicle: { id: 'tractor_main', x: 0, y: 300, angle: 0, driver: null },
     moto: { id: 'moto_main', x: 100, y: 300, angle: 0, driver: null },
-    zombies: [],
-    globalDonations: 0,
-    communityCrops: { wheat: 0, carrot: 0, corn: 0 }
+    globalDonations: 0
 };
 
-// Initialize worldState for 12 parcels (matching client count)
-for (let i = 0; i < 12; i++) {
-    worldState.parcels.push({
-        ownerId: null,
-        ownerName: null,
-        tiles: Array(100).fill(null).map(() => ({ type: 'grass', growth: 0 })),
-        machines: []
-    });
-}
+// No parcels to initialize
 
 io.on('connection', (socket) => {
     console.log('Jugador conectado:', socket.id);
@@ -74,35 +63,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle farm updates (e.g. planting)
-    socket.on('farmUpdate', (data) => {
-        const parcel = worldState.parcels[data.parcelIdx];
-        if (parcel) {
-            // Basic persistence logic
-            if (!parcel.ownerId) {
-                parcel.ownerId = data.playerId;
-                parcel.ownerName = data.playerName;
-            }
-            
-            const tileIdx = data.ty * 10 + data.tx;
-            if (data.action === 'till') {
-                parcel.tiles[tileIdx].type = 'tilled';
-            } else if (data.action.startsWith('plant:')) {
-                const cropType = data.action.split(':')[1];
-                parcel.tiles[tileIdx].type = 'crop';
-                parcel.tiles[tileIdx].crop = cropType;
-                parcel.tiles[tileIdx].growth = 0;
-            } else if (data.action === 'harvest') {
-                parcel.tiles[tileIdx].type = 'tilled';
-                parcel.tiles[tileIdx].growth = 0;
-                parcel.tiles[tileIdx].crop = null;
-            } else if (data.action === 'sprinkler') {
-                parcel.machines.push({ x: data.tx, y: data.ty, type: 'sprinkler' });
-            }
-
-            socket.broadcast.emit('farmUpdated', data);
-        }
-    });
+    // Social events only
 
     // Handle Chat
     socket.on('chatMessage', (data) => {
@@ -144,61 +105,14 @@ io.on('connection', (socket) => {
     });
 });
 
-// Server Tick (Zombies and Growth)
+// Server Tick (Social Sync)
 setInterval(() => {
-    // Spawn Zombies
-    if (worldState.zombies.length < 15) {
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 2000;
-        worldState.zombies.push({
-            id: 'zombie_' + Date.now() + Math.random(),
-            x: Math.cos(angle) * dist,
-            y: Math.sin(angle) * dist,
-            health: 100
-        });
-    }
-
-    // Move Zombies towards nearest player
-    worldState.zombies.forEach(z => {
-        let nearestDist = Infinity;
-        let target = null;
-        
-        Object.values(players).forEach(p => {
-            const d = Math.sqrt((p.x - z.x)**2 + (p.y - z.y)**2);
-            if (d < nearestDist) {
-                nearestDist = d;
-                target = p;
-            }
-        });
-
-        if (target) {
-            const angle = Math.atan2(target.y - z.y, target.x - z.x);
-            z.x += Math.cos(angle) * 3; // Server speed
-            z.y += Math.sin(angle) * 3;
-            
-            // Safe zone check (1000 radius)
-            const distToCenter = Math.sqrt(z.x**2 + z.y**2);
-            if (distToCenter < 1000) {
-                const pushAngle = Math.atan2(z.y, z.x);
-                z.x = Math.cos(pushAngle) * 1000;
-                z.y = Math.sin(pushAngle) * 1000;
-            }
-        }
-    });
-
-    io.emit('zombieUpdate', worldState.zombies);
-    
     // Broadcast Ranking every 5 seconds
     const ranking = Object.values(players)
         .map(p => ({ name: p.name, score: p.score || 0 }))
         .sort((a, b) => b.score - a.score);
     io.emit('rankingUpdate', ranking);
-}, 100);
-
-// Drone Event (Every 60s)
-setInterval(() => {
-    io.emit('droneEvent', { x: 0, y: -2000 });
-}, 60000);
+}, 5000);
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
