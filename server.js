@@ -62,8 +62,9 @@ io.on('connection', (socket) => {
             players[socket.id].appearance = data.appearance;
             players[socket.id].isRabbit = data.isRabbit;
             players[socket.id].mood = data.mood;
-            
             socket.broadcast.emit('playerMoved', players[socket.id]);
+        }
+    });
 
     // Social events only
 
