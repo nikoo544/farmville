@@ -160,13 +160,7 @@ class Parcel {
     }
 
     interact(tx, ty, action, player) {
-        if (this.ownerId && this.ownerId !== player.id) return;
-        
-        if (!this.ownerId) {
-            this.ownerId = player.id;
-            this.ownerName = player.name;
-        }
-
+        // Community Farm: No ownership checks
         const idx = ty * this.size + tx;
         const tile = this.tiles[idx];
 

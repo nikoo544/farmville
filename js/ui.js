@@ -24,6 +24,16 @@ export class UI {
             }
         };
 
+        // Emojis
+        document.querySelectorAll('.emoji-btn').forEach(btn => {
+            btn.onclick = () => {
+                const emoji = btn.dataset.emoji;
+                this.game.localPlayer.gesture = emoji;
+                setTimeout(() => this.game.localPlayer.gesture = null, 3000);
+                this.game.app.network.sendGesture(emoji);
+            };
+        });
+
         document.getElementById('sell-zone').onclick = () => {
             const distToNexus = Math.sqrt(this.game.localPlayer.x ** 2 + this.game.localPlayer.y ** 2);
             if (distToNexus < 200) {

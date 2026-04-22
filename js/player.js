@@ -8,6 +8,8 @@ export class Player {
         this.y = 150; // Start near the nexus but not inside
         this.radius = 25;
         this.color = isLocal ? '#4ade80' : '#f87171';
+        this.gesture = null;
+        this.radius = 20;
         
         this.speed = 300;
         this.velocity = { x: 0, y: 0 };
@@ -151,6 +153,12 @@ export class Player {
         ctx.font = 'bold 16px Outfit';
         ctx.textAlign = 'center';
         ctx.fillText(this.name, this.x, this.y - this.radius - 25);
+
+        // Gesture/Emoji
+        if (this.gesture) {
+            ctx.font = '40px Outfit';
+            ctx.fillText(this.gesture, this.x, this.y - this.radius - 60);
+        }
 
         // Tool Indicator Overlay (Only for local player or to show what others are doing)
         const toolIcons = { 

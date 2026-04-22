@@ -29,6 +29,7 @@ export class Game {
         this.farmSystem = new FarmSystem(this);
         
         this.donations = 0;
+        this.drone = null;
         this.spawnTimer = 0;
 
         this.lastTime = 0;
@@ -95,6 +96,11 @@ export class Game {
         // But we still filter dead ones for smoothness
         this.enemies = this.enemies.filter(e => !e.dead);
 
+        if (this.drone) {
+            this.drone.update(dt);
+            if (this.drone.dead) this.drone = null;
+        }
+
         // Update other entities
         this.entities.forEach(entity => entity.update?.(dt));
     }
@@ -113,6 +119,7 @@ export class Game {
 
         this.projectiles.forEach(p => p.draw(this.ctx));
         this.enemies.forEach(e => e.draw(this.ctx));
+        if (this.drone) this.drone.draw(this.ctx);
 
         // Draw entities
         this.entities.forEach(entity => entity.draw?.(this.ctx));
@@ -199,6 +206,73 @@ export class Game {
         this.ctx.font = 'bold 14px Outfit';
         this.ctx.fillText('COFRE GLOBAL', 0, 120);
         this.ctx.fillText(`$${this.donations}`, 0, 145);
+
+        // Draw Wall
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        this.ctx.lineWidth = 15;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 1000, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        // Draw Gate (at bottom)
+        this.ctx.strokeStyle = '#4ade80';
+        this.ctx.lineWidth = 20;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 1000, Math.PI * 0.4, Math.PI * 0.6);
+        this.ctx.stroke();
+    }
+}
+
+class Drone {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.target = { x: 0, y: 130 }; // Community chest
+        this.speed = 300;
+        this.state = 'approaching'; // 'approaching', 'collecting', 'leaving'
+        this.timer = 0;
+    }
+
+    update(dt) {
+        if (this.state === 'approaching') {
+            const dx = this.target.x - this.x;
+            const dy = this.target.y - this.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < 10) {
+                this.state = 'collecting';
+                this.timer = 3; // Stay 3 seconds
+            } else {
+                this.x += (dx/dist) * this.speed * dt;
+                this.y += (dy/dist) * this.speed * dt;
+            }
+        } else if (this.state === 'collecting') {
+            this.timer -= dt;
+            if (this.timer <= 0) this.state = 'leaving';
+        } else if (this.state === 'leaving') {
+            this.y -= this.speed * dt;
+            if (this.y < -3000) this.dead = true;
+        }
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        // Drone Body
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-20, -10, 40, 20);
+        // Props
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(-30, -20, 10, 5);
+        ctx.fillRect(20, -20, 10, 5);
+        ctx.fillRect(-30, 15, 10, 5);
+        ctx.fillRect(20, 15, 10, 5);
+        
+        if (this.state === 'collecting') {
+            ctx.fillStyle = '#facc15';
+            ctx.font = '10px Outfit';
+            ctx.fillText('COBRANDO...', -30, -30);
+        }
+        ctx.restore();
     }
 }
 

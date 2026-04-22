@@ -26,7 +26,8 @@ const worldState = {
     vehicle: { id: 'tractor_main', x: 0, y: 300, angle: 0, driver: null },
     moto: { id: 'moto_main', x: 100, y: 300, angle: 0, driver: null },
     zombies: [],
-    globalDonations: 0
+    globalDonations: 0,
+    communityCrops: { wheat: 0, carrot: 0, corn: 0 }
 };
 
 // Initialize worldState for 12 parcels (matching client count)
@@ -122,7 +123,14 @@ io.on('connection', (socket) => {
     // Handle Donation
     socket.on('donate', (amount) => {
         worldState.globalDonations += amount;
+        if (!players[socket.id].score) players[socket.id].score = 0;
+        players[socket.id].score += amount;
         io.emit('donationsUpdated', worldState.globalDonations);
+    });
+
+    // Handle Gesture
+    socket.on('gesture', (emoji) => {
+        socket.broadcast.emit('playerGesture', { id: socket.id, emoji });
     });
 
     socket.on('disconnect', () => {
@@ -175,7 +183,18 @@ setInterval(() => {
     });
 
     io.emit('zombieUpdate', worldState.zombies);
+    
+    // Broadcast Ranking every 5 seconds
+    const ranking = Object.values(players)
+        .map(p => ({ name: p.name, score: p.score || 0 }))
+        .sort((a, b) => b.score - a.score);
+    io.emit('rankingUpdate', ranking);
 }, 100);
+
+// Drone Event (Every 60s)
+setInterval(() => {
+    io.emit('droneEvent', { x: 0, y: -2000 });
+}, 60000);
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {

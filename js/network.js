@@ -42,6 +42,29 @@ export class NetworkManager {
             this.game.app.ui.receiveMessage('SISTEMA', `¡Donación recibida! Total global: $${amount}`);
         });
 
+        this.socket.on('rankingUpdate', (ranking) => {
+            const list = document.getElementById('score-list');
+            list.innerHTML = ranking.map((p, i) => `
+                <div class="score-item">
+                    <span>${i+1}. ${p.name}</span>
+                    <span>$${p.score}</span>
+                </div>
+            `).join('');
+        });
+
+        this.socket.on('droneEvent', (data) => {
+            this.game.drone = new Drone(data.x, data.y);
+            this.game.app.ui.receiveMessage('SISTEMA', '🚁 El Dron de recolección está llegando al Nexus...');
+        });
+
+        this.socket.on('playerGesture', (data) => {
+            const remotePlayer = this.game.players.get(data.id);
+            if (remotePlayer) {
+                remotePlayer.gesture = data.emoji;
+                setTimeout(() => remotePlayer.gesture = null, 3000);
+            }
+        });
+
         this.socket.on('currentPlayers', (players) => {
             Object.keys(players).forEach((id) => {
                 if (id !== this.socket.id) {
@@ -167,6 +190,12 @@ export class NetworkManager {
     sendDonation(amount) {
         if (this.socket) {
             this.socket.emit('donate', amount);
+        }
+    }
+
+    sendGesture(emoji) {
+        if (this.socket) {
+            this.socket.emit('gesture', emoji);
         }
     }
 }
