@@ -121,8 +121,7 @@ class App {
         const p = this.game.localPlayer;
         if (!p) return;
 
-        // Vehicle interaction
-        const distToVehicle = Math.sqrt((p.x - this.game.vehicle.x) ** 2 + (p.y - this.game.vehicle.y) ** 2);
+        // Vehicle interaction (Only Moto now)
         const distToMoto = Math.sqrt((p.x - this.game.moto.x) ** 2 + (p.y - this.game.moto.y) ** 2);
         
         // Handle Vehicle Exit/Enter
@@ -130,14 +129,8 @@ class App {
             p.isEntering = true;
             if (p.inVehicle) {
                 p.inVehicle = false;
-                this.game.vehicle.driver = null;
                 this.game.moto.driver = null;
-                this.network.sendVehicleUpdate(this.game.vehicle);
                 this.network.sendVehicleUpdate(this.game.moto);
-            } else if (distToVehicle < 150 && !this.game.vehicle.driver) {
-                p.inVehicle = true;
-                this.game.vehicle.driver = p.id;
-                this.network.sendVehicleUpdate(this.game.vehicle);
             } else if (distToMoto < 100 && !this.game.moto.driver) {
                 p.inVehicle = true;
                 this.game.moto.driver = p.id;
@@ -147,15 +140,13 @@ class App {
         }
 
         if (p.inVehicle) {
-            // Drive whichever vehicle has us as driver
-            const v = this.game.vehicle.driver === p.id ? this.game.vehicle : this.game.moto;
+            const v = this.game.moto;
             let move = 0;
             if (p.input.up) move = 1;
             if (p.input.down) move = -1;
             
-            const turnSpeed = v === this.game.moto ? 5 : 3;
-            if (p.input.left) v.angle -= turnSpeed * 0.016;
-            if (p.input.right) v.angle += turnSpeed * 0.016;
+            if (p.input.left) v.angle -= 5 * 0.016;
+            if (p.input.right) v.angle += 5 * 0.016;
 
             v.velocity.x = Math.cos(v.angle) * move * v.speed;
             v.velocity.y = Math.sin(v.angle) * move * v.speed;
@@ -167,63 +158,16 @@ class App {
             p.y = v.y;
             
             this.network.sendVehicleUpdate(v);
-            return; // Skip normal interaction if in vehicle
+            return;
         }
 
-        // Check Nexus proximity (Shop)
-        const distToNexus = Math.sqrt(p.x * p.x + p.y * p.y);
-        const nearNexus = distToNexus < 200;
-
-        // Check Parcel proximity
-        const parcel = this.game.farmSystem.getParcelAt(p.x, p.y);
-        
+        // Interaction Prompt for Social Plaza
+        const distToCenter = Math.sqrt(p.x * p.x + p.y * p.y);
         const prompt = document.getElementById('interaction-prompt');
         
-        if (nearNexus) {
+        if (distToCenter < 300) {
             prompt.classList.remove('hidden');
-            prompt.innerHTML = `Presiona <span class="key">E</span> para Abrir Tienda`;
-            if (p.input.interact && !this.ui.isShopOpen()) {
-                this.ui.toggleShop(true);
-                p.input.interact = false; // Prevent multiple triggers
-            }
-        } else if (parcel) {
-            prompt.classList.remove('hidden');
-            let actionName = 'Arar';
-            let action = 'till';
-
-            if (p.currentTool.startsWith('plant:')) { 
-                const cropType = p.currentTool.split(':')[1];
-                actionName = `Plantar ${cropType}`; 
-                action = p.currentTool; 
-            }
-            if (p.currentTool === 'scythe') { actionName = 'Cosechar'; action = 'harvest'; }
-            if (p.currentTool === 'sprinkler') { actionName = 'Colocar Aspersor'; action = 'sprinkler'; }
-            if (p.currentTool.startsWith('weapon:')) { actionName = 'Atacar'; action = 'attack'; }
-
-            prompt.innerHTML = `Presiona <span class="key">E</span> para ${actionName}`;
-            
-            if (p.input.interact) {
-                const tx = Math.floor((p.x - parcel.x) / parcel.tileSize);
-                const ty = Math.floor((p.y - parcel.y) / parcel.tileSize);
-                
-                const success = parcel.interact(tx, ty, action, p);
-                if (success) {
-                    if (action === 'harvest') {
-                        const cropType = success; // interact returns crop type
-                        p.inventory[cropType] = (p.inventory[cropType] || 0) + 1;
-                    } else if (action === 'sprinkler') {
-                        p.currentTool = 'hoe';
-                    }
-                    
-                    // Sync farm update
-                    const parcelIdx = this.game.farmSystem.parcels.indexOf(parcel);
-                    this.network.sendFarmUpdate(parcelIdx, tx, ty, action, p);
-                    
-                    this.ui.updateStats(p.inventory);
-                }
-                
-                p.input.interact = false;
-            }
+            prompt.innerHTML = `🌟 Estás en la Plaza Central. ¡Usa <span class="key">Q</span> para tu poder!`;
         } else {
             prompt.classList.add('hidden');
         }
