@@ -125,9 +125,7 @@ export class Player {
         
         const angle = Math.atan2(worldMouseY - this.y, worldMouseX - this.x);
         
-        // Spawn local projectile
-        const ProjectileClass = Object.getPrototypeOf(game.entities.find(e => e.constructor.name === 'Vehicle')).constructor; // Hacky way to get classes if not exported
-        // Better: game.spawnProjectile(this.x, this.y, angle, weaponType, this.id);
+        // Notify network (which will also spawn locally)
         window.app.network.sendShoot(this.x, this.y, angle, weaponType);
         
         const cooldown = weaponType === 'bazooka' ? 1.5 : (weaponType === 'bow' ? 0.8 : 0.2);

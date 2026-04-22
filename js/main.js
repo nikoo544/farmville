@@ -5,8 +5,9 @@ import { NetworkManager } from './network.js';
 
 class App {
     constructor() {
+        window.app = this; // Global access for modules
         this.game = new Game();
-        this.game.app = this; // Give game access to app
+        this.game.app = this;
         this.ui = new UI(this.game);
         this.network = new NetworkManager(this.game);
         

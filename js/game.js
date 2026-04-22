@@ -154,7 +154,7 @@ export class Game {
 
     spawnZombie() {
         const angle = Math.random() * Math.PI * 2;
-        const dist = 1500;
+        const dist = 2000 + Math.random() * 500; // Spawn much further out
         const x = Math.cos(angle) * dist;
         const y = Math.sin(angle) * dist;
         this.enemies.push(new Zombie(x, y));
@@ -288,8 +288,18 @@ class Zombie {
 
         if (nearest) {
             const angle = Math.atan2(nearest.y - this.y, nearest.x - this.x);
+            
+            // Move towards target
             this.x += Math.cos(angle) * this.speed * dt;
             this.y += Math.sin(angle) * this.speed * dt;
+
+            // Safe Zone Restriction: Don't enter radius 1000 (Parcels area)
+            const distToCenter = Math.sqrt(this.x**2 + this.y**2);
+            if (distToCenter < 1000) {
+                const pushAngle = Math.atan2(this.y, this.x);
+                this.x = Math.cos(pushAngle) * 1000;
+                this.y = Math.sin(pushAngle) * 1000;
+            }
         }
     }
 

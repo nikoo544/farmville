@@ -77,16 +77,18 @@ io.on('connection', (socket) => {
             }
             
             const tileIdx = data.ty * 10 + data.tx;
-            if (data.action === 'till') parcel.tiles[tileIdx].type = 'tilled';
-            if (data.action === 'plant') {
+            if (data.action === 'till') {
+                parcel.tiles[tileIdx].type = 'tilled';
+            } else if (data.action.startsWith('plant:')) {
+                const cropType = data.action.split(':')[1];
                 parcel.tiles[tileIdx].type = 'crop';
+                parcel.tiles[tileIdx].crop = cropType;
                 parcel.tiles[tileIdx].growth = 0;
-            }
-            if (data.action === 'harvest') {
+            } else if (data.action === 'harvest') {
                 parcel.tiles[tileIdx].type = 'tilled';
                 parcel.tiles[tileIdx].growth = 0;
-            }
-            if (data.action === 'sprinkler') {
+                parcel.tiles[tileIdx].crop = null;
+            } else if (data.action === 'sprinkler') {
                 parcel.machines.push({ x: data.tx, y: data.ty, type: 'sprinkler' });
             }
 

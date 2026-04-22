@@ -18,7 +18,7 @@ export class NetworkManager {
         this.socket.on('worldState', (state) => {
             state.parcels.forEach((pData, i) => {
                 const parcel = this.game.farmSystem.parcels[i];
-                if (parcel && pData.ownerId) {
+                if (parcel) {
                     parcel.ownerId = pData.ownerId;
                     parcel.ownerName = pData.ownerName;
                     parcel.tiles = pData.tiles;
