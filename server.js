@@ -22,7 +22,8 @@ app.use(express.static(__dirname));
 // Game State
 const players = {};
 const worldState = {
-    parcels: [] // Array of parcel states
+    parcels: [], // Array of parcel states
+    vehicle: { x: 0, y: 300, angle: 0, driver: null }
 };
 
 // Initialize worldState for 12 parcels (matching client count)
@@ -91,6 +92,20 @@ io.on('connection', (socket) => {
 
             socket.broadcast.emit('farmUpdated', data);
         }
+    });
+
+    // Handle Chat
+    socket.on('chatMessage', (data) => {
+        socket.broadcast.emit('chatMessage', data);
+    });
+
+    // Handle Vehicle
+    socket.on('vehicleUpdate', (data) => {
+        worldState.vehicle.x = data.x;
+        worldState.vehicle.y = data.y;
+        worldState.vehicle.angle = data.angle;
+        worldState.vehicle.driver = data.driver;
+        socket.broadcast.emit('vehicleMoved', data);
     });
 
     socket.on('disconnect', () => {

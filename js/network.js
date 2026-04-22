@@ -45,7 +45,21 @@ export class NetworkManager {
                 remotePlayer.x = playerInfo.x;
                 remotePlayer.y = playerInfo.y;
                 remotePlayer.currentTool = playerInfo.currentTool;
+                remotePlayer.inVehicle = playerInfo.inVehicle;
+                remotePlayer.name = playerInfo.name; // Ensure name is synced
             }
+        });
+
+        this.socket.on('chatMessage', (data) => {
+            this.game.app.ui.receiveMessage(data.name, data.text);
+        });
+
+        this.socket.on('vehicleMoved', (data) => {
+            const v = this.game.vehicle;
+            v.x = data.x;
+            v.y = data.y;
+            v.angle = data.angle;
+            v.driver = data.driver;
         });
 
         this.socket.on('playerDisconnected', (id) => {
@@ -79,7 +93,31 @@ export class NetworkManager {
             this.socket.emit('playerMovement', { 
                 x, 
                 y, 
-                currentTool: this.game.localPlayer.currentTool 
+                currentTool: this.game.localPlayer.currentTool,
+                inVehicle: this.game.localPlayer.inVehicle,
+                name: this.game.localPlayer.name
+            });
+        }
+    }
+
+    sendMessage(text) {
+        if (this.socket) {
+            this.socket.emit('chatMessage', { 
+                name: this.game.localPlayer.name, 
+                text 
+            });
+            // Show locally too
+            this.game.app.ui.receiveMessage(this.game.localPlayer.name, text);
+        }
+    }
+
+    sendVehicleUpdate(vehicle) {
+        if (this.socket) {
+            this.socket.emit('vehicleUpdate', {
+                x: vehicle.x,
+                y: vehicle.y,
+                angle: vehicle.angle,
+                driver: vehicle.driver
             });
         }
     }

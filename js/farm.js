@@ -10,14 +10,14 @@ export class FarmSystem {
     }
 
     generateParcels() {
-        // Larger ring of parcels with more spacing
+        // Deterministic ring of parcels (Fixed positions for all players)
         const radius = 1200;
         const count = 12;
         for (let i = 0; i < count; i++) {
             const angle = (i / count) * Math.PI * 2;
-            // Add some randomness to position
-            const px = Math.cos(angle) * radius + (Math.random() - 0.5) * 200;
-            const py = Math.sin(angle) * radius + (Math.random() - 0.5) * 200;
+            // No randomness here to keep sync across clients
+            const px = Math.cos(angle) * radius;
+            const py = Math.sin(angle) * radius;
             
             this.parcels.push(new Parcel(px, py, this.parcelSize, this.tileSize));
         }
@@ -119,9 +119,15 @@ class Parcel {
                 ctx.fillStyle = '#451a03';
                 ctx.fillRect(x + 2, y + 2, this.tileSize - 4, this.tileSize - 4);
                 
-                // Draw crop
+                // Draw crop with color based on type
                 const cropSize = (tile.growth / 100) * (this.tileSize * 0.6);
-                ctx.fillStyle = tile.growth >= 100 ? '#fbbf24' : '#4ade80';
+                
+                if (tile.growth >= 100) {
+                    ctx.fillStyle = tile.crop === 'carrot' ? '#f97316' : (tile.crop === 'corn' ? '#facc15' : '#fbbf24');
+                } else {
+                    ctx.fillStyle = '#4ade80'; // Green while growing
+                }
+
                 if (tile.watered) ctx.strokeStyle = '#60a5fa';
                 if (tile.watered) ctx.lineWidth = 2;
                 
@@ -166,14 +172,16 @@ class Parcel {
 
         if (action === 'till' && tile.type === 'grass') {
             tile.type = 'tilled';
-        } else if (action === 'plant' && tile.type === 'tilled') {
+        } else if (action.startsWith('plant:') && tile.type === 'tilled') {
+            const cropType = action.split(':')[1];
             tile.type = 'crop';
             tile.growth = 0;
-            tile.crop = 'wheat';
+            tile.crop = cropType;
         } else if (action === 'harvest' && tile.type === 'crop' && tile.growth >= 100) {
+            const harvestedCrop = tile.crop;
             tile.type = 'tilled';
             tile.growth = 0;
-            return true; // Harvested
+            return harvestedCrop; // Return the type of crop harvested
         } else if (action === 'sprinkler') {
             this.machines.push({ x: tx, y: ty, type: 'sprinkler' });
             return true;

@@ -14,6 +14,16 @@ export class UI {
     setupListeners() {
         this.closeShopBtn.onclick = () => this.toggleShop(false);
         
+        // Chat
+        const chatInput = document.getElementById('chat-input');
+        chatInput.onkeydown = (e) => {
+            if (e.code === 'Enter' && chatInput.value.trim()) {
+                this.game.app.network.sendMessage(chatInput.value.trim());
+                chatInput.value = '';
+                chatInput.blur();
+            }
+        };
+
         document.getElementById('sell-zone').onclick = () => {
             const distToNexus = Math.sqrt(this.game.localPlayer.x ** 2 + this.game.localPlayer.y ** 2);
             if (distToNexus < 200) {
@@ -58,11 +68,14 @@ export class UI {
 
     updateStats(stats) {
         if (stats.money !== undefined) this.moneyDisplay.innerText = stats.money;
-        if (stats.crops !== undefined) document.getElementById('crop-display').innerText = stats.crops;
         
-        // Update tool indicator (we'll add this to HTML)
+        // Sum all crops for display
+        const totalCrops = (stats.wheat || 0) + (stats.carrot || 0) + (stats.corn || 0);
+        document.getElementById('crop-display').innerText = totalCrops;
+        
+        // Update tool indicator
         const toolIcon = this.game.localPlayer?.currentTool === 'hoe' ? '⚒️' : 
-                        (this.game.localPlayer?.currentTool === 'plant' ? '🌱' : 
+                        (this.game.localPlayer?.currentTool.startsWith('plant') ? '🌱' : 
                         (this.game.localPlayer?.currentTool === 'sprinkler' ? '⛲' : '🪓'));
         document.getElementById('tool-indicator').innerText = toolIcon;
     }
@@ -75,9 +88,9 @@ export class UI {
 
         const items = {
             seeds: [
-                { id: 'wheat', name: 'Trigo', price: 10, icon: '🌾' },
-                { id: 'carrot', name: 'Zanahoria', price: 25, icon: '🥕' },
-                { id: 'corn', name: 'Maíz', price: 50, icon: '🌽' }
+                { id: 'plant:wheat', name: 'Trigo', price: 10, icon: '🌾' },
+                { id: 'plant:carrot', name: 'Zanahoria', price: 25, icon: '🥕' },
+                { id: 'plant:corn', name: 'Maíz', price: 50, icon: '🌽' }
             ],
             tools: [
                 { id: 'hoe', name: 'Azada Pro', price: 100, icon: '⚒️' },
@@ -135,9 +148,10 @@ export class UI {
 
         if (p.inventory.money >= item.price) {
             p.inventory.money -= item.price;
-            console.log('Bought:', item.name);
             
-            if (item.id === 'sprinkler') {
+            if (item.id.startsWith('plant:')) {
+                p.currentTool = item.id;
+            } else if (item.id === 'sprinkler') {
                 p.currentTool = 'sprinkler';
             }
 
@@ -150,12 +164,29 @@ export class UI {
 
     sellCrops() {
         const p = this.game.localPlayer;
-        if (!p || p.inventory.crops <= 0) return;
+        if (!p) return;
 
-        const earnings = p.inventory.crops * 15; // $15 per crop
+        const wheatVal = (p.inventory.wheat || 0) * 15;
+        const carrotVal = (p.inventory.carrot || 0) * 40;
+        const cornVal = (p.inventory.corn || 0) * 100;
+        
+        const earnings = wheatVal + carrotVal + cornVal;
+        if (earnings <= 0) return;
+
         p.inventory.money += earnings;
-        p.inventory.crops = 0;
+        p.inventory.wheat = 0;
+        p.inventory.carrot = 0;
+        p.inventory.corn = 0;
+        
         this.updateStats(p.inventory);
-        console.log('Sold crops for:', earnings);
+    }
+
+    receiveMessage(name, text) {
+        const chatMessages = document.getElementById('chat-messages');
+        const msgEl = document.createElement('div');
+        msgEl.className = 'chat-msg';
+        msgEl.innerHTML = `<span class="name">${name}:</span><span class="text">${text}</span>`;
+        chatMessages.appendChild(msgEl);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 }

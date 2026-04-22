@@ -19,6 +19,9 @@ export class Game {
         this.entities = [];
         this.players = new Map();
         this.localPlayer = null;
+        
+        this.vehicle = new Vehicle(0, 300); // Create tractor near Nexus
+        this.entities.push(this.vehicle);
 
         this.farmSystem = new FarmSystem(this);
 
@@ -145,5 +148,66 @@ export class Game {
         this.ctx.fillText('NEXUS', 0, 0);
         this.ctx.font = '20px Outfit';
         this.ctx.fillText('TIENDA', 0, 30);
+    }
+}
+
+class Vehicle {
+    constructor(x, y) {
+        this.id = 'tractor_main';
+        this.x = x;
+        this.y = y;
+        this.width = 120;
+        this.height = 80;
+        this.color = '#e11d48'; // Rose/Red
+        this.driver = null;
+        this.passengers = [];
+        this.velocity = { x: 0, y: 0 };
+        this.speed = 500;
+        this.angle = 0;
+    }
+
+    update(dt) {
+        if (this.driver) {
+            // Logic handled by the driver (authoritative)
+        } else {
+            // Friction
+            this.velocity.x *= 0.95;
+            this.velocity.y *= 0.95;
+            this.x += this.velocity.x * dt;
+            this.y += this.velocity.y * dt;
+        }
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+
+        // Body
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.roundRect(-this.width/2, -this.height/2, this.width, this.height, 10);
+        ctx.fill();
+        
+        // Cab
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fillRect(0, -this.height/2 + 10, this.width/2 - 10, this.height - 20);
+
+        // Wheels
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-this.width/2 + 5, -this.height/2 - 5, 30, 10);
+        ctx.fillRect(-this.width/2 + 5, this.height/2 - 5, 30, 10);
+        ctx.fillRect(this.width/2 - 35, -this.height/2 - 5, 30, 10);
+        ctx.fillRect(this.width/2 - 35, this.height/2 - 5, 30, 10);
+
+        ctx.restore();
+        
+        // Passengers label
+        if (this.driver || this.passengers.length > 0) {
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Outfit';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Abordo: ${this.driver ? 1 : 0} + ${this.passengers.length}`, this.x, this.y - 60);
+        }
     }
 }

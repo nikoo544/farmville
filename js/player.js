@@ -14,18 +14,23 @@ export class Player {
         
         this.inventory = {
             money: 100,
-            crops: 0,
+            wheat: 0,
+            carrot: 0,
+            corn: 0,
             seeds: 10
         };
 
-        this.currentTool = 'hoe'; // 'hoe', 'plant', 'scythe'
+        this.currentTool = 'hoe'; // 'hoe', 'plant:wheat', etc
+        this.inVehicle = false;
+        this.isEntering = false;
         
         this.input = {
             up: false,
             down: false,
             left: false,
             right: false,
-            interact: false
+            interact: false,
+            vehicle: false
         };
 
         if (this.isLocal) {
@@ -45,8 +50,9 @@ export class Player {
             case 'KeyA': case 'ArrowLeft': this.input.left = isDown; break;
             case 'KeyD': case 'ArrowRight': this.input.right = isDown; break;
             case 'KeyE': this.input.interact = isDown; break;
+            case 'KeyV': this.input.vehicle = isDown; break;
             case 'Digit1': this.currentTool = 'hoe'; break;
-            case 'Digit2': this.currentTool = 'plant'; break;
+            case 'Digit2': this.currentTool = 'plant:wheat'; break;
             case 'Digit3': this.currentTool = 'scythe'; break;
         }
     }
@@ -94,6 +100,8 @@ export class Player {
     }
 
     draw(ctx) {
+        if (this.inVehicle) return;
+
         // Shadow/Glow
         ctx.shadowBlur = 15;
         ctx.shadowColor = this.color;
